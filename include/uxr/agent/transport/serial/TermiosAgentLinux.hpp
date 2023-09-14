@@ -34,9 +34,30 @@ public:
 
     ~TermiosAgent();
 
-    int getfd() { return poll_fd_.fd; };
+    // int getfd() { return poll_fd_.fd; };
+
+    void send_shutdown(int fd);
+
+    int rpmsg_create_ept(int rpfd,
+			 struct rpmsg_endpoint_info *eptinfo);
+
+    static char *get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
+					const char *ept_name,
+					char *ept_dev_name);
+  
+    static int bind_rpmsg_chrdev(const char *rpmsg_dev_name);
+  
+    static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
+				   char *rpmsg_ctrl_name);
+  
+    static void set_src_dst(char *out,
+			    struct rpmsg_endpoint_info *pep);
+  
+    static void lookup_channel(char *out,
+			       struct rpmsg_endpoint_info *pep);
 
 private:
+
     bool init() final;
     bool fini() final;
     bool handle_error(

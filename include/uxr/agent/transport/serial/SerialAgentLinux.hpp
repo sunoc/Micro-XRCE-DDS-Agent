@@ -22,6 +22,45 @@
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
+#include <sys/types.h>
+
+#include <poll.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <signal.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <dirent.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <sys/ioctl.h>
+#include <time.h>
+#include <fcntl.h>
+#include <string.h>
+#include <linux/rpmsg.h>
+
+
+#define RPMSG_GET_KFIFO_SIZE 1
+#define RPMSG_GET_AVAIL_DATA_SIZE 2
+#define RPMSG_GET_FREE_SPACE 3
+
+#define RPMSG_HEADER_LEN 16
+#define MAX_RPMSG_BUFF_SIZE (512 - RPMSG_HEADER_LEN)
+#define PAYLOAD_MIN_SIZE	1
+#define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
+#define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
+
+#define RPMSG_BUS_SYS "/sys/bus/rpmsg"
+
+#define SHUTDOWN_MSG 0xEF56A55A
+
+/* message printing utils */
+#define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
+#define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)
+#define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
 
 namespace eprosima {
 namespace uxr {
@@ -40,6 +79,24 @@ public:
 #ifdef UAGENT_P2P_PROFILE
     bool has_p2p() final { return false; }
 #endif
+
+  /* RPMsg-specific general variables */
+  int ntimes = 1;
+  char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+  char rpmsg_char_name[16];
+  char fpath[2*NAME_MAX];
+  
+  struct rpmsg_endpoint_info {
+    const char *name;
+    int src;
+    int dst;
+  };
+  struct rpmsg_endpoint_info eptinfo =
+    {"rpmsg-openamp-demo-channel", 0, 0};
+  
+  char ept_dev_name[16];
+  char ept_dev_path[32];
+    
 
 private:
     virtual bool init() = 0;
@@ -67,10 +124,13 @@ private:
             TransportRc& transport_rc);
 
 protected:
-    const uint8_t addr_;
-    struct pollfd poll_fd_;
-    uint8_t buffer_[SERVER_BUFFER_SIZE];
-    FramingIO framing_io_;
+    // const uint8_t addr_;
+    // struct pollfd poll_fd_;
+  uint8_t buffer_[SERVER_BUFFER_SIZE];
+  FramingIO framing_io_;
+  int opt;
+  int charfd;
+  int fd;
 };
 
 } // namespace uxr

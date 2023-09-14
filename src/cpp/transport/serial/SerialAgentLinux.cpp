@@ -21,35 +21,53 @@
 namespace eprosima {
 namespace uxr {
 
-SerialAgent::SerialAgent(
-        uint8_t addr,
-        Middleware::Kind middleware_kind)
+  SerialAgent::SerialAgent(
+			   uint8_t addr,
+			   Middleware::Kind middleware_kind)
     : Server<SerialEndPoint>{middleware_kind}
-    , addr_{addr}
-    , poll_fd_{}
+  // , addr_{addr}
+  // , poll_fd_{}
     , buffer_{0}
     , framing_io_(
-          addr,
-          std::bind(&SerialAgent::write_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-          std::bind(&SerialAgent::read_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4))
-{}
+		  addr,
+		  std::bind(&SerialAgent::write_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+		  std::bind(&SerialAgent::read_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4))
+    , opt{}
+    , charfd{}
+    , fd{}
+    {}
 
 ssize_t SerialAgent::write_data(
         uint8_t* buf,
         size_t len,
         TransportRc& transport_rc)
 {
-    size_t rv = 0;
-    ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
-    if (0 < bytes_written)
-    {
-        rv = size_t(bytes_written);
-    }
-    else
-    {
-        transport_rc = TransportRc::server_error;
-    }
-    return rv;
+  // size_t rv = 0;
+  // ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+  // if (0 < bytes_written)
+  // {
+  //     rv = size_t(bytes_written);
+  // }
+  // else
+  // {
+  //     transport_rc = TransportRc::server_error;
+  // }
+  // return rv;
+
+  UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent write_data function", NULL);					    
+
+  ssize_t bytes_sent = -1;
+
+  // wtf ?!
+  bytes_sent = ::write(fd, buf, len);
+  if (0 <= bytes_sent) {
+    UXR_PRINTF("Sent payload of size", len);
+    return bytes_sent;
+  } else {
+    UXR_ERROR("sending data failed with errno", strerror(errno));
+    transport_rc = TransportRc::server_error;
+    return -1;
+  }
 }
 
 ssize_t SerialAgent::read_data(
@@ -58,25 +76,48 @@ ssize_t SerialAgent::read_data(
         int timeout,
         TransportRc& transport_rc)
 {
-    ssize_t bytes_read = 0;
-    int poll_rv = poll(&poll_fd_, 1, timeout);
-    if(poll_fd_.revents & (POLLERR+POLLHUP))
-    {
-        transport_rc = TransportRc::server_error;;
-    }
-    else if (0 < poll_rv)
-    {
-        bytes_read = read(poll_fd_.fd, buf, len);
-        if (0 > bytes_read)
-        {
-            transport_rc = TransportRc::server_error;
-        }
-    }
-    else
-    {
-        transport_rc = (poll_rv == 0) ? TransportRc::timeout_error : TransportRc::server_error;
-    }
-    return bytes_read;
+  // ssize_t bytes_read = 0;
+  // int poll_rv = poll(&poll_fd_, 1, timeout);
+  // if(poll_fd_.revents & (POLLERR+POLLHUP))
+  // {
+  //     transport_rc = TransportRc::server_error;;
+  // }
+  // else if (0 < poll_rv)
+  // {
+  //     bytes_read = read(poll_fd_.fd, buf, len);
+  //     if (0 > bytes_read)
+  //     {
+  //         transport_rc = TransportRc::server_error;
+  //     }
+  // }
+  // else
+  // {
+  //     transport_rc = (poll_rv == 0) ? TransportRc::timeout_error : TransportRc::server_error;
+  // }
+  // return bytes_read;
+
+  UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent read_data function", NULL);
+
+  ssize_t bytes_received = -1;
+
+  /* Read data from the file descriptor
+     until some data is receive or
+     until we timeout */
+  while (0 >= bytes_received || 0 < timeout) {
+    usleep(10000);
+    bytes_received = read(fd, buf, len);
+    timeout--;
+  }
+
+  /* Check if something was received */
+  if (0 >= bytes_received){
+    UXR_WARNING("Read function timed out. Exit recv function.", NULL);
+    transport_rc = TransportRc::server_error;
+    return 0;
+  } else {
+    UXR_PRINTF("Received payload size in bytes: ", bytes_received);
+    return bytes_received;
+  }
 }
 
 bool SerialAgent::recv_message(
