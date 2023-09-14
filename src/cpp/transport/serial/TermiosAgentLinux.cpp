@@ -436,6 +436,11 @@ bool TermiosAgent::init()
     UXR_PRINTF("Calling lookup channel function", NULL);
     lookup_channel(rpmsg_dev, &eptinfo);
 
+    // Init the endpoint structure that exists at the class level
+    eptinfo.name = "rpmsg-openamp-demo-channel";
+    eptinfo.src = 0;
+    eptinfo.dst = 0;
+
     while ((opt = getopt(argc, argv, "d:n:s:e:")) != -1) {
       switch (opt) {
       case 'd':

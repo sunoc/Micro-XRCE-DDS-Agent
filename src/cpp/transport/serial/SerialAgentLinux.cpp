@@ -19,170 +19,170 @@
 #include <unistd.h>
 
 namespace eprosima {
-namespace uxr {
+  namespace uxr {
 
-  SerialAgent::SerialAgent(
-			   uint8_t addr,
-			   Middleware::Kind middleware_kind)
-    : Server<SerialEndPoint>{middleware_kind}
-  // , addr_{addr}
-  // , poll_fd_{}
-    , buffer_{0}
-    , framing_io_(
-		  addr,
-		  std::bind(&SerialAgent::write_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-		  std::bind(&SerialAgent::read_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4))
-    , opt{}
-    , charfd{}
-    , fd{}
+    SerialAgent::SerialAgent(
+			     uint8_t addr,
+			     Middleware::Kind middleware_kind)
+      : Server<SerialEndPoint>{middleware_kind}
+    // , addr_{addr}
+    // , poll_fd_{}
+      , buffer_{0}
+      , framing_io_(
+		    addr,
+		    std::bind(&SerialAgent::write_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+		    std::bind(&SerialAgent::read_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4))
+      , opt{}
+      , charfd{}
+      , fd{}
     {}
 
-ssize_t SerialAgent::write_data(
-        uint8_t* buf,
-        size_t len,
-        TransportRc& transport_rc)
-{
-  // size_t rv = 0;
-  // ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
-  // if (0 < bytes_written)
-  // {
-  //     rv = size_t(bytes_written);
-  // }
-  // else
-  // {
-  //     transport_rc = TransportRc::server_error;
-  // }
-  // return rv;
-
-  UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent write_data function", NULL);					    
-
-  ssize_t bytes_sent = -1;
-
-  // wtf ?!
-  bytes_sent = ::write(fd, buf, len);
-  if (0 <= bytes_sent) {
-    UXR_PRINTF("Sent payload of size", len);
-    return bytes_sent;
-  } else {
-    UXR_ERROR("sending data failed with errno", strerror(errno));
-    transport_rc = TransportRc::server_error;
-    return -1;
-  }
-}
-
-ssize_t SerialAgent::read_data(
-        uint8_t* buf,
-        size_t len,
-        int timeout,
-        TransportRc& transport_rc)
-{
-  // ssize_t bytes_read = 0;
-  // int poll_rv = poll(&poll_fd_, 1, timeout);
-  // if(poll_fd_.revents & (POLLERR+POLLHUP))
-  // {
-  //     transport_rc = TransportRc::server_error;;
-  // }
-  // else if (0 < poll_rv)
-  // {
-  //     bytes_read = read(poll_fd_.fd, buf, len);
-  //     if (0 > bytes_read)
-  //     {
-  //         transport_rc = TransportRc::server_error;
-  //     }
-  // }
-  // else
-  // {
-  //     transport_rc = (poll_rv == 0) ? TransportRc::timeout_error : TransportRc::server_error;
-  // }
-  // return bytes_read;
-
-  UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent read_data function", NULL);
-
-  ssize_t bytes_received = -1;
-
-  /* Read data from the file descriptor
-     until some data is receive or
-     until we timeout */
-  while (0 >= bytes_received || 0 < timeout) {
-    usleep(10000);
-    bytes_received = read(fd, buf, len);
-    timeout--;
-  }
-
-  /* Check if something was received */
-  if (0 >= bytes_received){
-    UXR_WARNING("Read function timed out. Exit recv function.", NULL);
-    transport_rc = TransportRc::server_error;
-    return 0;
-  } else {
-    UXR_PRINTF("Received payload size in bytes: ", bytes_received);
-    return bytes_received;
-  }
-}
-
-bool SerialAgent::recv_message(
-        InputPacket<SerialEndPoint>& input_packet,
-        int timeout,
-        TransportRc& transport_rc)
-{
-    bool rv = false;
-    uint8_t remote_addr = 0x00;
-    ssize_t bytes_read = 0;
-
-    do
+    ssize_t SerialAgent::write_data(
+				    uint8_t* buf,
+				    size_t len,
+				    TransportRc& transport_rc)
     {
-        bytes_read = framing_io_.read_framed_msg(
-            buffer_, SERVER_BUFFER_SIZE, remote_addr, timeout, transport_rc);
-    }
-    while ((0 == bytes_read) && (0 < timeout));
+      // size_t rv = 0;
+      // ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+      // if (0 < bytes_written)
+      // {
+      //     rv = size_t(bytes_written);
+      // }
+      // else
+      // {
+      //     transport_rc = TransportRc::server_error;
+      // }
+      // return rv;
 
-    if (0 < bytes_read)
+      UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent write_data function", NULL);					    
+
+      ssize_t bytes_sent = -1;
+
+      // wtf ?!
+      bytes_sent = ::write(fd, buf, len);
+      if (0 <= bytes_sent) {
+	UXR_PRINTF("Sent payload of size", len);
+	return bytes_sent;
+      } else {
+	UXR_ERROR("sending data failed with errno", strerror(errno));
+	transport_rc = TransportRc::server_error;
+	return -1;
+      }
+    }
+
+    ssize_t SerialAgent::read_data(
+				   uint8_t* buf,
+				   size_t len,
+				   int timeout,
+				   TransportRc& transport_rc)
     {
-        input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
-        input_packet.source = SerialEndPoint(remote_addr);
-        rv = true;
+      // ssize_t bytes_read = 0;
+      // int poll_rv = poll(&poll_fd_, 1, timeout);
+      // if(poll_fd_.revents & (POLLERR+POLLHUP))
+      // {
+      //     transport_rc = TransportRc::server_error;;
+      // }
+      // else if (0 < poll_rv)
+      // {
+      //     bytes_read = read(poll_fd_.fd, buf, len);
+      //     if (0 > bytes_read)
+      //     {
+      //         transport_rc = TransportRc::server_error;
+      //     }
+      // }
+      // else
+      // {
+      //     transport_rc = (poll_rv == 0) ? TransportRc::timeout_error : TransportRc::server_error;
+      // }
+      // return bytes_read;
 
-        uint32_t raw_client_key;
-        if (Server<SerialEndPoint>::get_client_key(input_packet.source, raw_client_key))
-        {
-            UXR_AGENT_LOG_MESSAGE(
-                UXR_DECORATE_YELLOW("[==>> SER <<==]"),
-                raw_client_key,
-                input_packet.message->get_buf(),
-                input_packet.message->get_len());
-        }
+      UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent read_data function", NULL);
+
+      ssize_t bytes_received = -1;
+
+      /* Read data from the file descriptor
+	 until some data is receive or
+	 until we timeout */
+      while (0 >= bytes_received || 0 < timeout) {
+	usleep(10000);
+	bytes_received = read(fd, buf, len);
+	timeout--;
+      }
+
+      /* Check if something was received */
+      if (0 >= bytes_received){
+	UXR_WARNING("Read function timed out. Exit recv function.", NULL);
+	transport_rc = TransportRc::server_error;
+	return 0;
+      } else {
+	UXR_PRINTF("Received payload size in bytes: ", bytes_received);
+	return bytes_received;
+      }
     }
-    return rv;
-}
 
-bool SerialAgent::send_message(
-        OutputPacket<SerialEndPoint> output_packet,
-        TransportRc& transport_rc)
-{
-    bool rv = false;
-    ssize_t bytes_written =
-            framing_io_.write_framed_msg(
-                output_packet.message->get_buf(),
-                output_packet.message->get_len(),
-                output_packet.destination.get_addr(),
-                transport_rc);
-    if ((0 < bytes_written) && (
-         static_cast<size_t>(bytes_written) == output_packet.message->get_len()))
+    bool SerialAgent::recv_message(
+				   InputPacket<SerialEndPoint>& input_packet,
+				   int timeout,
+				   TransportRc& transport_rc)
     {
-        rv = true;
+      bool rv = false;
+      uint8_t remote_addr = 0x00;
+      ssize_t bytes_read = 0;
 
-        uint32_t raw_client_key;
-        if (Server<SerialEndPoint>::get_client_key(output_packet.destination, raw_client_key))
-        {
-            UXR_AGENT_LOG_MESSAGE(
-                UXR_DECORATE_YELLOW("[** <<SER>> **]"),
-                raw_client_key,
-                output_packet.message->get_buf(),
-                output_packet.message->get_len());
-        }
+      do
+	{
+	  bytes_read = framing_io_.read_framed_msg(
+						   buffer_, SERVER_BUFFER_SIZE, remote_addr, timeout, transport_rc);
+	}
+      while ((0 == bytes_read) && (0 < timeout));
+
+      if (0 < bytes_read)
+	{
+	  input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
+	  input_packet.source = SerialEndPoint(remote_addr);
+	  rv = true;
+
+	  uint32_t raw_client_key;
+	  if (Server<SerialEndPoint>::get_client_key(input_packet.source, raw_client_key))
+	    {
+	      UXR_AGENT_LOG_MESSAGE(
+				    UXR_DECORATE_YELLOW("[==>> SER <<==]"),
+				    raw_client_key,
+				    input_packet.message->get_buf(),
+				    input_packet.message->get_len());
+	    }
+	}
+      return rv;
     }
-    return rv;
-}
 
-} // namespace uxr
+    bool SerialAgent::send_message(
+				   OutputPacket<SerialEndPoint> output_packet,
+				   TransportRc& transport_rc)
+    {
+      bool rv = false;
+      ssize_t bytes_written =
+	framing_io_.write_framed_msg(
+				     output_packet.message->get_buf(),
+				     output_packet.message->get_len(),
+				     output_packet.destination.get_addr(),
+				     transport_rc);
+      if ((0 < bytes_written) && (
+				  static_cast<size_t>(bytes_written) == output_packet.message->get_len()))
+	{
+	  rv = true;
+
+	  uint32_t raw_client_key;
+	  if (Server<SerialEndPoint>::get_client_key(output_packet.destination, raw_client_key))
+	    {
+	      UXR_AGENT_LOG_MESSAGE(
+				    UXR_DECORATE_YELLOW("[** <<SER>> **]"),
+				    raw_client_key,
+				    output_packet.message->get_buf(),
+				    output_packet.message->get_len());
+	    }
+	}
+      return rv;
+    }
+
+  } // namespace uxr
 } // namespace eprosima

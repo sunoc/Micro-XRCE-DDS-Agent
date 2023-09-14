@@ -63,77 +63,78 @@
 #define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
 
 namespace eprosima {
-namespace uxr {
-
-class SerialAgent : public Server<SerialEndPoint>
-{
-public:
-    SerialAgent(
-            uint8_t addr,
-            Middleware::Kind middleware_kind);
+  namespace uxr {
+  
+    class SerialAgent : public Server<SerialEndPoint>
+    {
+    public:
+      SerialAgent(
+		  uint8_t addr,
+		  Middleware::Kind middleware_kind);
 
 #ifdef UAGENT_DISCOVERY_PROFILE
-    bool has_discovery() final { return false; }
+      bool has_discovery() final { return false; }
 #endif
 
 #ifdef UAGENT_P2P_PROFILE
-    bool has_p2p() final { return false; }
+      bool has_p2p() final { return false; }
 #endif
 
-  /* RPMsg-specific general variables */
-  int ntimes = 1;
-  char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
-  char rpmsg_char_name[16];
-  char fpath[2*NAME_MAX];
+      /* RPMsg-specific general variables */
+      int ntimes = 1;
+      char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+      char rpmsg_char_name[16];
+      char fpath[2*NAME_MAX];
+
+      // typedef not needed ?!?!
+      struct rpmsg_endpoint_info {
+	const char *name;
+	int src;
+	int dst;
+      } eptinfo;
+      
+      // rpmsg_endpoint_info eptinfo;
   
-  struct rpmsg_endpoint_info {
-    const char *name;
-    int src;
-    int dst;
-  };
-  struct rpmsg_endpoint_info eptinfo =
-    {"rpmsg-openamp-demo-channel", 0, 0};
-  
-  char ept_dev_name[16];
-  char ept_dev_path[32];
+      char ept_dev_name[16];
+      char ept_dev_path[32];
     
 
-private:
-    virtual bool init() = 0;
+    private:
+      virtual bool init() = 0;
 
-    virtual bool fini() = 0;
+      virtual bool fini() = 0;
 
-    bool recv_message(
-            InputPacket<SerialEndPoint>& input_packet,
-            int timeout,
-            TransportRc& transport_rc) final;
+      bool recv_message(
+			InputPacket<SerialEndPoint>& input_packet,
+			int timeout,
+			TransportRc& transport_rc) final;
 
-    bool send_message(
-            OutputPacket<SerialEndPoint> output_packet,
-            TransportRc& transport_rc) final;
+      bool send_message(
+			OutputPacket<SerialEndPoint> output_packet,
+			TransportRc& transport_rc) final;
 
-    ssize_t write_data(
-            uint8_t* buf,
-            size_t len,
-            TransportRc& transport_rc);
+      ssize_t write_data(
+			 uint8_t* buf,
+			 size_t len,
+			 TransportRc& transport_rc);
 
-    ssize_t read_data(
-            uint8_t* buf,
-            size_t len,
-            int timeout,
-            TransportRc& transport_rc);
+      ssize_t read_data(
+			uint8_t* buf,
+			size_t len,
+			int timeout,
+			TransportRc& transport_rc);
 
-protected:
-    // const uint8_t addr_;
-    // struct pollfd poll_fd_;
-  uint8_t buffer_[SERVER_BUFFER_SIZE];
-  FramingIO framing_io_;
-  int opt;
-  int charfd;
-  int fd;
-};
+    protected:
+      // const uint8_t addr_;
+      // struct pollfd poll_fd_;
+      uint8_t buffer_[SERVER_BUFFER_SIZE];
+      FramingIO framing_io_;
+      int opt;
+      int charfd;
+      int fd;
+    };
 
-} // namespace uxr
+  } // namespace uxr
 } // namespace eprosima
 
 #endif // UXR_AGENT_TRANSPORT_SERIAL_SERIALAGENTLINUX_HPP_

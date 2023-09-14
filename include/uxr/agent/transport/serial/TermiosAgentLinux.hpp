@@ -39,7 +39,7 @@ public:
     void send_shutdown(int fd);
 
     int rpmsg_create_ept(int rpfd,
-			 struct rpmsg_endpoint_info *eptinfo);
+			 rpmsg_endpoint_info *eptinfo);
 
     static char *get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
 					const char *ept_name,
@@ -51,10 +51,10 @@ public:
 				   char *rpmsg_ctrl_name);
   
     static void set_src_dst(char *out,
-			    struct rpmsg_endpoint_info *pep);
+			    rpmsg_endpoint_info *pep);
   
     static void lookup_channel(char *out,
-			       struct rpmsg_endpoint_info *pep);
+			       rpmsg_endpoint_info *pep);
 
 private:
 
