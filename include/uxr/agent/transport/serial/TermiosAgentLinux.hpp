@@ -54,7 +54,7 @@ public:
 			    rpmsg_endpoint_info *pep);
   
     void lookup_channel(char *out,
-			       rpmsg_endpoint_info *pep);
+			rpmsg_endpoint_info *pep);
 
 private:
 

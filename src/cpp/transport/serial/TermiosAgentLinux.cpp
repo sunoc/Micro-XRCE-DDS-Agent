@@ -319,7 +319,7 @@ void TermiosAgent::lookup_channel(char *out, rpmsg_endpoint_info *pep)
 	  UXR_ERROR("errno is", strerror(errno));
 	  return;
 	}
-
+	
 	UXR_PRINTF("1", NULL);
 	while ((ent = readdir(dir)) != NULL) {
 	        UXR_PRINTF("2", NULL);
@@ -445,23 +445,25 @@ bool TermiosAgent::init()
 //     return rv;
 
 
-    UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent INIT function", NULL);
+    UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
     int ret;
-    
-    ret = system("set -x; lsmod; modprobe rpmsg_char");
-    if (ret < 0) {
-      UXR_ERROR("Failed to load rpmsg_char driver.", ret);
-      return false;
-    }
-  
-    UXR_PRINTF("Calling lookup channel function", NULL);
-    lookup_channel(rpmsg_dev, &eptinfo);
 
     // Init the endpoint structure that exists at the class level
     eptinfo.name = "rpmsg-openamp-demo-channel";
     eptinfo.src = 0;
     eptinfo.dst = 0;
+    rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+    
+    ret = system("set -x; modprobe rpmsg_char");
+    // ret = system("set -x; lsmod; modprobe rpmsg_char");
+    if (ret < 0) {
+      UXR_ERROR("Failed to load rpmsg_char driver.", ret);
+      return false;
+    }
+  
+    UXR_PRINTF("Calling lookup cha func", NULL);
+    lookup_channel(rpmsg_dev, &eptinfo);
 
     // while ((opt = getopt(argc, argv, "d:n:s:e:")) != -1) {
     //   switch (opt) {

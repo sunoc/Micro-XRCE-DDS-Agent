@@ -114,9 +114,9 @@ namespace eprosima {
       int charfd;
       int fd;
 
-            /* RPMsg-specific general variables */
+      /* RPMsg-specific general variables */
       int ntimes = 1;
-      char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+      char rpmsg_dev[NAME_MAX];
       char rpmsg_char_name[16];
       char fpath[2*NAME_MAX];
 
