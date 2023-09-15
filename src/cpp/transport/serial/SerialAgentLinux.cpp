@@ -25,8 +25,8 @@ namespace eprosima {
 			     uint8_t addr,
 			     Middleware::Kind middleware_kind)
       : Server<SerialEndPoint>{middleware_kind}
-    // , addr_{addr}
-    // , poll_fd_{}
+      , addr_{addr}
+      , poll_fd_{}
       , buffer_{0}
       , framing_io_(
 		    addr,

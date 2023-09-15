@@ -78,26 +78,7 @@ namespace eprosima {
 
 #ifdef UAGENT_P2P_PROFILE
       bool has_p2p() final { return false; }
-#endif
-
-      /* RPMsg-specific general variables */
-      int ntimes = 1;
-      char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
-      char rpmsg_char_name[16];
-      char fpath[2*NAME_MAX];
-
-      // typedef not needed ?!?!
-      struct rpmsg_endpoint_info {
-	const char *name;
-	int src;
-	int dst;
-      } eptinfo;
-      
-      // rpmsg_endpoint_info eptinfo;
-  
-      char ept_dev_name[16];
-      char ept_dev_path[32];
-    
+#endif    
 
     private:
       virtual bool init() = 0;
@@ -125,13 +106,31 @@ namespace eprosima {
 			TransportRc& transport_rc);
 
     protected:
-      // const uint8_t addr_;
-      // struct pollfd poll_fd_;
+      const uint8_t addr_;
+      struct pollfd poll_fd_;
       uint8_t buffer_[SERVER_BUFFER_SIZE];
       FramingIO framing_io_;
       int opt;
       int charfd;
       int fd;
+
+            /* RPMsg-specific general variables */
+      int ntimes = 1;
+      char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+      char rpmsg_char_name[16];
+      char fpath[2*NAME_MAX];
+
+      // typedef not needed ?!?!
+      struct rpmsg_endpoint_info {
+	const char *name;
+	int src;
+	int dst;
+      } eptinfo;
+      
+      // rpmsg_endpoint_info eptinfo;
+  
+      char ept_dev_name[16];
+      char ept_dev_path[32];
     };
 
   } // namespace uxr

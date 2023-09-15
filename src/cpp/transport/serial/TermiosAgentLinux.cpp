@@ -73,6 +73,7 @@ void TermiosAgent::send_shutdown(int filedescriptor)
   if (0 >= bytes_sent){
     UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno)); 
   }
+}
 
 /*******************************************************************************
 *
@@ -87,11 +88,11 @@ void TermiosAgent::send_shutdown(int filedescriptor)
 * @note		None.
 *
 *******************************************************************************/
-int TermiosAgent::rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
+int TermiosAgent::rpmsg_create_ept(int rpfd, rpmsg_endpoint_info *ept)
 {
   int ret;
 
-  ret = ioctl(rpfd, RPMSG_CREATE_EPT_IOCTL, eptinfo);
+  ret = ioctl(rpfd, RPMSG_CREATE_EPT_IOCTL, ept);
   if (ret)
     UXR_ERROR("Failed to create endpoint", ret);
   return ret;
@@ -112,20 +113,20 @@ int TermiosAgent::rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo
 * @note		None.
 *
 *******************************************************************************/
-static char *TermiosAgent::get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
+char *TermiosAgent::get_rpmsg_ept_dev_name(const char *rpmsg_name,
 				    const char *ept_name,
-				    char *ept_dev_name)
+				    char *ept_device_name)
 {
   char sys_rpmsg_ept_name_path[64];
   char svc_name[64];
   const char *sys_rpmsg_path = "/sys/class/rpmsg";
   FILE *fp;
   int i;
-  int ept_name_len;
+  long unsigned int ept_name_len;
 
   for (i = 0; i < 128; i++) {
     sprintf(sys_rpmsg_ept_name_path, "%s/%s/rpmsg%d/name",
-	    sys_rpmsg_path, rpmsg_char_name, i);
+	    sys_rpmsg_path, rpmsg_name, i);
     UXR_PRINTF("checking sys_rpmsg_ept_name_path", sys_rpmsg_ept_name_path);
     if (access(sys_rpmsg_ept_name_path, F_OK) < 0)
       continue;
@@ -145,12 +146,12 @@ static char *TermiosAgent::get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
     if (ept_name_len > sizeof(svc_name))
       ept_name_len = sizeof(svc_name);
     if (!strncmp(svc_name, ept_name, ept_name_len)) {
-      sprintf(ept_dev_name, "rpmsg%d", i);
-      return ept_dev_name;
+      sprintf(ept_device_name, "rpmsg%d", i);
+      return ept_device_name;
     }
   }
 
-  UXR_ERROR("Not able to RPMsg endpoint file", rpmsg_char_name);
+  UXR_ERROR("Not able to RPMsg endpoint file", rpmsg_name);
   UXR_ERROR("Faild endpoint is", ept_name);
   return NULL;
 }
@@ -166,50 +167,50 @@ static char *TermiosAgent::get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
 * @note		None.
 *
 *******************************************************************************/
-static int TermiosAgent::bind_rpmsg_chrdev(const char *rpmsg_dev_name)
+int TermiosAgent::bind_rpmsg_chrdev(const char *rpmsg_name)
 {
-  char fpath[256];
+  char fpath_chrdev[256];
   const char *rpmsg_chdrv = "rpmsg_chrdev";
-  int fd;
+  int fd_chrdev;
   int ret;
 
   /* rpmsg dev overrides path */
-  sprintf(fpath, "%s/devices/%s/driver_override",
-	  RPMSG_BUS_SYS, rpmsg_dev_name);
-  UXR_PRINTF("open fpath", fpath);
-  fd = open(fpath, O_WRONLY);
-  if (fd < 0) {
-    UXR_ERROR("Failed to open fpath", fpath);
+  sprintf(fpath_chrdev, "%s/devices/%s/driver_override",
+	  RPMSG_BUS_SYS, rpmsg_name);
+  UXR_PRINTF("open fpath_chrdev", fpath_chrdev);
+  fd_chrdev = open(fpath_chrdev, O_WRONLY);
+  if (fd_chrdev < 0) {
+    UXR_ERROR("Failed to open fpath_chrdev", fpath_chrdev);
     UXR_ERROR("errno is", strerror(errno));
     return -EINVAL;
   }
-  ret = write(fd, rpmsg_chdrv, strlen(rpmsg_chdrv) + 1);
+  ret = ::write(fd_chrdev, rpmsg_chdrv, strlen(rpmsg_chdrv) + 1);
   if (ret < 0) {
     UXR_ERROR("Failed to write rpmsg_chdrv", rpmsg_chdrv);
-    UXR_ERROR("chdrv failed path", fpath);
+    UXR_ERROR("chdrv failed path", fpath_chrdev);
     UXR_ERROR("errno is", strerror(errno));
     return -EINVAL;
   }
-  close(fd);
+  close(fd_chrdev);
 
   /* bind the rpmsg device to rpmsg char driver */
-  sprintf(fpath, "%s/drivers/%s/bind", RPMSG_BUS_SYS, rpmsg_chdrv);
-  fd = open(fpath, O_WRONLY);
-  if (fd < 0) {
-    UXR_ERROR("Failed to open fpath", fpath);
+  sprintf(fpath_chrdev, "%s/drivers/%s/bind", RPMSG_BUS_SYS, rpmsg_chdrv);
+  fd_chrdev = open(fpath_chrdev, O_WRONLY);
+  if (fd_chrdev < 0) {
+    UXR_ERROR("Failed to open fpath_chrdev", fpath_chrdev);
     UXR_ERROR("errno is", strerror(errno));
     return -EINVAL;
   }
-  UXR_PRINTF("write rpmsg dev", rpmsg_dev_name);
-  UXR_PRINTF("write to path", fpath);
-  ret = write(fd, rpmsg_dev_name, strlen(rpmsg_dev_name) + 1);
+  UXR_PRINTF("write rpmsg dev", rpmsg_name);
+  UXR_PRINTF("write to path", fpath_chrdev);
+  ret = ::write(fd_chrdev, rpmsg_name, strlen(rpmsg_name) + 1);
   if (ret < 0) {
-    UXR_ERROR("Failed to write rpmsg dev in path", rpmsg_dev_name);
-    UXR_ERROR("failed path", fpath);
+    UXR_ERROR("Failed to write rpmsg dev in path", rpmsg_name);
+    UXR_ERROR("failed path", fpath_chrdev);
     UXR_ERROR("errno is", strerror(errno));
     return -EINVAL;
   }
-  close(fd);
+  close(fd_chrdev);
   return 0;
 }
 
@@ -217,7 +218,7 @@ static int TermiosAgent::bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 *
 * @brief        Looks for the rpmsg character device file descriptor
 *
-* @param	rpmsg_dev_name: 
+* @param	rpmsg_name: 
 *
 * @param	rpmsg_ctrl_name: 
 *
@@ -226,15 +227,15 @@ static int TermiosAgent::bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 * @note		None.
 *
 *****************************************************************************/
-static int TermiosAgent::get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
+int TermiosAgent::get_rpmsg_chrdev_fd(const char *rpmsg_name,
 			       char *rpmsg_ctrl_name)
 {
   char dpath[2*NAME_MAX];
   DIR *dir;
   struct dirent *ent;
-  int fd;
+  int chr_fd;
 
-  sprintf(dpath, "%s/devices/%s/rpmsg", RPMSG_BUS_SYS, rpmsg_dev_name);
+  sprintf(dpath, "%s/devices/%s/rpmsg", RPMSG_BUS_SYS, rpmsg_name);
   UXR_PRINTF("opendir {}", dpath);
   dir = opendir(dpath);
   if (dir == NULL) {
@@ -247,14 +248,14 @@ static int TermiosAgent::get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
       sprintf(dpath, "/dev/%s", ent->d_name);
       closedir(dir);
       UXR_PRINTF("opening path", dpath);
-      fd = open(dpath, O_RDWR | O_NONBLOCK);
-      if (fd < 0) {
+      chr_fd = open(dpath, O_RDWR | O_NONBLOCK);
+      if (chr_fd < 0) {
 	UXR_ERROR("failed opening fd", dpath);
 	UXR_ERROR("errno is", strerror(errno));
-	return fd;
+	return chr_fd;
       }
       sprintf(rpmsg_ctrl_name, "%s", ent->d_name);
-      return fd;
+      return chr_fd;
     }
   }
 
@@ -276,7 +277,7 @@ static int TermiosAgent::get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 * @note		None.
 *
 *****************************************************************************/
-static void TermiosAgent::set_src_dst(char *out, struct rpmsg_endpoint_info *pep)
+void TermiosAgent::set_src_dst(char *out, rpmsg_endpoint_info *pep)
 {
   long dst = 0;
   char *lastdot = strrchr(out, '.');
@@ -307,8 +308,7 @@ static void TermiosAgent::set_src_dst(char *out, struct rpmsg_endpoint_info *pep
 * @note		None.
 *
 *****************************************************************************/
-static void TermiosAgent::lookup_channel(char *out,
-					 struct rpmsg_endpoint_info *pep)
+void TermiosAgent::lookup_channel(char *out, rpmsg_endpoint_info *pep)
 {
 	char dpath[] = RPMSG_BUS_SYS "/devices";
 	struct dirent *ent;
@@ -319,13 +319,24 @@ static void TermiosAgent::lookup_channel(char *out,
 	  UXR_ERROR("errno is", strerror(errno));
 	  return;
 	}
+
+	UXR_PRINTF("1", NULL);
 	while ((ent = readdir(dir)) != NULL) {
+	        UXR_PRINTF("2", NULL);
+	        // UXR_PRINTF("check names for ent", ent->d_name);
+		// UXR_PRINTF("and for pep", pep->name);
 		if (strstr(ent->d_name, pep->name)) {
-			strncpy(out, ent->d_name, NAME_MAX);
-			set_src_dst(out, pep);
-			UXR_PRINTF("using dev file", out);
-			closedir(dir);
-			return;
+		  // UXR_PRINTF("strcpy to", out);
+		  // UXR_PRINTF("strcpy from", ent->d_name);
+		  UXR_PRINTF("3", NULL);
+		  strncpy(out, ent->d_name, NAME_MAX+1);
+		  // UXR_PRINTF("set src dest", NULL);
+		  UXR_PRINTF("4", NULL);
+		  set_src_dst(out, pep);
+		  // UXR_PRINTF("using dev file", out);
+		  UXR_PRINTF("5", NULL);
+		  closedir(dir);
+		  return;
 		}
 	}
 	closedir(dir);
@@ -433,6 +444,17 @@ bool TermiosAgent::init()
 //     }
 //     return rv;
 
+
+    UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent INIT function", NULL);
+
+    int ret;
+    
+    ret = system("set -x; lsmod; modprobe rpmsg_char");
+    if (ret < 0) {
+      UXR_ERROR("Failed to load rpmsg_char driver.", ret);
+      return false;
+    }
+  
     UXR_PRINTF("Calling lookup channel function", NULL);
     lookup_channel(rpmsg_dev, &eptinfo);
 
@@ -441,25 +463,25 @@ bool TermiosAgent::init()
     eptinfo.src = 0;
     eptinfo.dst = 0;
 
-    while ((opt = getopt(argc, argv, "d:n:s:e:")) != -1) {
-      switch (opt) {
-      case 'd':
-	strncpy(rpmsg_dev, optarg, sizeof(rpmsg_dev));
-	break;
-      case 'n':
-	ntimes = atoi(optarg);
-	break;
-      case 's':
-	eptinfo.src = atoi(optarg);
-	break;
-      case 'e':
-	eptinfo.dst = atoi(optarg);
-	break;
-      default:
-	UXR_ERROR("getopt return unsupported option",opt);
-	break;
-      }
-    }
+    // while ((opt = getopt(argc, argv, "d:n:s:e:")) != -1) {
+    //   switch (opt) {
+    //   case 'd':
+    // 	strncpy(rpmsg_dev, optarg, sizeof(rpmsg_dev));
+    // 	break;
+    //   case 'n':
+    // 	ntimes = atoi(optarg);
+    // 	break;
+    //   case 's':
+    // 	eptinfo.src = atoi(optarg);
+    // 	break;
+    //   case 'e':
+    // 	eptinfo.dst = atoi(optarg);
+    // 	break;
+    //   default:
+    // 	UXR_ERROR("getopt return unsupported option",opt);
+    // 	break;
+    //   }
+    // }
 
     sprintf(fpath, RPMSG_BUS_SYS "/devices/%s", rpmsg_dev);
     if (access(fpath, F_OK)) {
