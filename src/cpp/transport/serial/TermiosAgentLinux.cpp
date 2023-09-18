@@ -92,9 +92,17 @@ int TermiosAgent::rpmsg_create_ept(int rpfd, rpmsg_endpoint_info *ept)
 {
   int ret;
 
-  ret = ioctl(rpfd, RPMSG_CREATE_EPT_IOCTL, ept);
-  if (ret)
-    UXR_ERROR("Failed to create endpoint", ret);
+  if (0 >= rpfd && NULL != ept) {
+    ret = ioctl(rpfd, RPMSG_CREATE_EPT_IOCTL, ept);
+    UXR_PRINTF("tried ioctl, got a ret value", ret);
+  } else {
+    UXR_ERROR("Some null valued was received", strerror(errno));
+    ret = -1;
+  }
+
+  if (ret) {
+    UXR_ERROR("Failed to write to rpfd", strerror(errno)); 
+  }
   return ret;
 }
 
@@ -450,10 +458,11 @@ bool TermiosAgent::init()
     int ret;
 
     // Init the endpoint structure that exists at the class level
-    eptinfo.name = "rpmsg-openamp-demo-channel";
-    eptinfo.src = 0;
-    eptinfo.dst = 0;
-    rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+    // eptinfo.name = "rpmsg-openamp-demo-channel";
+    // eptinfo.src = 0;
+    // eptinfo.dst = 0;
+    // rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+    strcpy(rpmsg_dev,"virtio0.rpmsg-openamp-demo-channel.-1.0");
     
     ret = system("set -x; modprobe rpmsg_char");
     // ret = system("set -x; lsmod; modprobe rpmsg_char");
@@ -492,16 +501,21 @@ bool TermiosAgent::init()
       return false;
     }
     ret = bind_rpmsg_chrdev(rpmsg_dev);
-    if (ret < 0)
+    if (0 > ret) {
+      UXR_ERROR("failed to bind chrdev", strerror(errno));
       return false;
+    }
     charfd = get_rpmsg_chrdev_fd(rpmsg_dev, rpmsg_char_name);
-    if (charfd < 0)
+    if (0 >= charfd) {
+      UXR_ERROR("obtained charfd ", strerror(errno));
       return false;
+    }
 
     /* Create endpoint from rpmsg char driver */
     UXR_PRINTF("rpmsg_create_ept: name", eptinfo.name);
     UXR_PRINTF("rpmsg_create_ept: source", eptinfo.src);
     UXR_PRINTF("rpmsg_create_ept: destination", eptinfo.dst);
+    UXR_PRINTF("rpmsg_create_ept: charfd", charfd);
     ret = rpmsg_create_ept(charfd, &eptinfo);
     if (ret) {
       UXR_ERROR("rpmsg_create_ept failed with error", strerror(errno));
