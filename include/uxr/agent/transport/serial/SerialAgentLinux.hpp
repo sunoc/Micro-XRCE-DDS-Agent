@@ -78,9 +78,18 @@ namespace eprosima {
 
 #ifdef UAGENT_P2P_PROFILE
       bool has_p2p() final { return false; }
-#endif    
+#endif
+
+      /* rpmsg structure */
+      struct rpmsg_endpoint_info {
+	const char *name = "rpmsg-openamp-demo-channel";
+	int src = 0;
+	int dst = 0;
+      } eptinfo;
+
 
     private:
+
       virtual bool init() = 0;
 
       virtual bool fini() = 0;
@@ -119,15 +128,6 @@ namespace eprosima {
       char rpmsg_dev[NAME_MAX];
       char rpmsg_char_name[16];
       char fpath[2*NAME_MAX];
-
-      // typedef not needed ?!?!
-      struct rpmsg_endpoint_info {
-	const char *name;
-	int src;
-	int dst;
-      } eptinfo;
-      
-      // rpmsg_endpoint_info eptinfo;
   
       char ept_dev_name[16];
       char ept_dev_path[32];
