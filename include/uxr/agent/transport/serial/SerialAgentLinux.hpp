@@ -81,12 +81,11 @@ namespace eprosima {
 #endif
 
       /* rpmsg structure */
-      struct rpmsg_endpoint_info {
-	const char *name = "rpmsg-openamp-demo-channel";
-	int src = 0;
-	int dst = 0;
-      } eptinfo;
-
+      rpmsg_endpoint_info eptinfo = {
+	"rpmsg-openamp-demo-channel", // name[32]
+	0, // src
+	0, // dst
+      };
 
     private:
 

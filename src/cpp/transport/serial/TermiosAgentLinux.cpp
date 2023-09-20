@@ -92,7 +92,7 @@ int TermiosAgent::rpmsg_create_ept(int rpfd, rpmsg_endpoint_info *ept)
 {
   int ret;
 
-  if (0 >= rpfd && NULL != ept) {
+  if (0 <= rpfd && NULL != ept) {
     ret = ioctl(rpfd, RPMSG_CREATE_EPT_IOCTL, ept);
     UXR_PRINTF("tried ioctl, got a ret value", ret);
   } else {
@@ -100,7 +100,7 @@ int TermiosAgent::rpmsg_create_ept(int rpfd, rpmsg_endpoint_info *ept)
     ret = -1;
   }
 
-  if (ret) {
+  if (-1 == ret) {
     UXR_ERROR("Failed to write to rpfd", strerror(errno)); 
   }
   return ret;
