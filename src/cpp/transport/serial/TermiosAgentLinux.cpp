@@ -528,7 +528,8 @@ bool TermiosAgent::init()
 
     UXR_PRINTF("open endpoint path", ept_dev_path);
     fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
-    if (fd < 0) {
+    if ( 0 >= fd ) {
+      UXR_ERROR("Unable to open the endpoint. Exit.", strerror(errno));
       perror(ept_dev_path);
       close(charfd);
       return false;

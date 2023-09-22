@@ -55,10 +55,9 @@ namespace eprosima {
       // return rv;
 
       UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent write_data function", NULL);					    
-
+      
       ssize_t bytes_sent = -1;
 
-      // wtf ?!
       bytes_sent = ::write(fd, buf, len);
       if (0 <= bytes_sent) {
 	UXR_PRINTF("Sent payload of size", len);
@@ -103,7 +102,9 @@ namespace eprosima {
       /* Read data from the file descriptor
 	 until some data is receive or
 	 until we timeout */
-      while (0 >= bytes_received || 0 < timeout) {
+      
+      UXR_PRINTF("Trying to read data until timeout.", timeout);
+      while (0 >= bytes_received && 0 < timeout) {
 	usleep(10000);
 	bytes_received = read(fd, buf, len);
 	timeout--;
@@ -115,7 +116,7 @@ namespace eprosima {
 	transport_rc = TransportRc::server_error;
 	return 0;
       } else {
-	UXR_PRINTF("Received payload size in bytes: ", bytes_received);
+	UXR_PRINTF("Received payload of size: ", bytes_received);
 	return bytes_received;
       }
     }
