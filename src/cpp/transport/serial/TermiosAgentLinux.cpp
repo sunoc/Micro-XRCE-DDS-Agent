@@ -456,6 +456,7 @@ bool TermiosAgent::init()
     UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
     int ret;
+    unsigned int hello;
 
     // Init the endpoint structure that exists at the class level
     // eptinfo.name = "rpmsg-openamp-demo-channel";
@@ -548,7 +549,17 @@ bool TermiosAgent::init()
     // }	
 
   /* Succes, returning true */
-  return true;
+    UXR_PRINTF("RPMsg init is successful.", NULL);
+    UXR_PRINTF("Sending a first message to the remoteproc to start it.", NULL);
+
+    hello = 42;
+    ret = ::write(fd, &hello, sizeof(hello));
+    if ( 0  >= ret ) {
+      UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
+      return false;
+    }
+    
+    return true;
 }
 
 bool TermiosAgent::fini()
