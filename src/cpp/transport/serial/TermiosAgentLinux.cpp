@@ -456,7 +456,7 @@ bool TermiosAgent::init()
     UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
     int ret;
-    unsigned int hello;
+    unsigned char hello[5] = {42, 42, 42, 42, 42};
 
     // Init the endpoint structure that exists at the class level
     // eptinfo.name = "rpmsg-openamp-demo-channel";
@@ -536,29 +536,23 @@ bool TermiosAgent::init()
       return false;
     }
 
-    /*
-      TODO: gotta find if a payload system is needed, since the read /write function
-      can directly use their own buffer / len system.
-    */
+
     // i_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
     // r_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
 
     // if (i_payload == 0 || r_payload == 0) {
     //   UXR_ERROR("Failed to allocate memory for payload.", strerror(errno));
     //   return false;
-    // }	
+    // }
 
-  /* Succes, returning true */
-    UXR_PRINTF("RPMsg init is successful.", NULL);
     UXR_PRINTF("Sending a first message to the remoteproc to start it.", NULL);
-
-    hello = 42;
-    ret = ::write(fd, &hello, sizeof(hello));
+    ret = ::write(fd, &hello, 5);
     if ( 0  >= ret ) {
       UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
       return false;
     }
-    
+
+    UXR_PRINTF("RPMsg init is successful.", NULL);
     return true;
 }
 
