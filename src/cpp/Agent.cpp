@@ -18,6 +18,16 @@
 #include <uxr/agent/datawriter/DataWriter.hpp>
 #include <uxr/agent/middleware/utils/Callbacks.hpp>
 
+#include <uxr/agent/transport/Server.hpp>
+#include <uxr/agent/transport/endpoint/SerialEndPoint.hpp>
+#include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
+
+/* message printing utils */
+#define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
+#define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)
+#define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
+
+
 namespace eprosima {
 namespace uxr {
 
@@ -229,6 +239,7 @@ bool Agent::create_client(
         Middleware::Kind middleware_kind,
         OpResult& op_result)
 {
+  UXR_PRINTF("Entering method", NULL );
     dds::xrce::CLIENT_Representation client_representation;
     dds::xrce::AGENT_Representation agent_representation;
     dds::xrce::ResultStatus result;
@@ -532,6 +543,7 @@ bool Agent::load_config_file(const std::string& file_path)
 
 void Agent::set_verbose_level(uint8_t verbose_level)
 {
+    UXR_PRINTF("Entering method", NULL );
     root_->set_verbose_level(verbose_level);
 }
 

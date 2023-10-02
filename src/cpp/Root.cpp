@@ -25,6 +25,12 @@
 #include <memory>
 #include <chrono>
 
+/* message printing utils */
+#define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
+#define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)
+#define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
+
+
 constexpr dds::xrce::XrceVendorId EPROSIMA_VENDOR_ID = {0x01, 0x0F};
 
 namespace eprosima {
@@ -57,6 +63,7 @@ dds::xrce::ResultStatus Root::create_client(
         dds::xrce::AGENT_Representation& agent_representation,
         Middleware::Kind middleware_kind)
 {
+  UXR_PRINTF("Start methode.", NULL);
     if (client_representation.client_key() == dds::xrce::CLIENTKEY_INVALID)
     {
         dds::xrce::ResultStatus invalid_result;
@@ -160,6 +167,7 @@ dds::xrce::ResultStatus Root::create_client(
 
 dds::xrce::ResultStatus Root::get_info(dds::xrce::ObjectInfo& agent_info)
 {
+  UXR_PRINTF("Start methode.", NULL);
     dds::xrce::ResultStatus result_status;
 
     /* Agent config. */
@@ -178,6 +186,7 @@ dds::xrce::ResultStatus Root::get_info(dds::xrce::ObjectInfo& agent_info)
 
 dds::xrce::ResultStatus Root::delete_client(const dds::xrce::ClientKey& client_key)
 {
+  UXR_PRINTF("Start methode.", NULL);
     dds::xrce::ResultStatus result_status;
     if (std::shared_ptr<ProxyClient> client = get_client(client_key))
     {
@@ -208,6 +217,7 @@ dds::xrce::ResultStatus Root::delete_client(const dds::xrce::ClientKey& client_k
 
 std::shared_ptr<ProxyClient> Root::get_client(const dds::xrce::ClientKey& client_key)
 {
+  UXR_PRINTF("Start methode.", NULL);
     std::shared_ptr<ProxyClient> client;
     std::lock_guard<std::mutex> lock(mtx_);
     auto it = clients_.find(client_key);
@@ -224,19 +234,23 @@ bool Root::get_next_client(std::shared_ptr<ProxyClient>& next_client)
     std::lock_guard<std::mutex> lock(mtx_);
     if (current_client_ != clients_.end())
     {
+      UXR_PRINTF("current client not end.", NULL);
         next_client = current_client_->second;
         ++current_client_;
         rv = true;
     }
     else
     {
+      UXR_PRINTF("current client = end.", NULL);
         current_client_ = clients_.begin();
     }
+    UXR_PRINTF("rv", rv);
     return rv;
 }
 
 bool Root::load_config_file(const std::string& file_path)
 {
+  UXR_PRINTF("Start methode.", NULL);
 #ifdef UAGENT_FAST_PROFILE
     return fastrtps::xmlparser::XMLP_ret::XML_OK == fastrtps::xmlparser::XMLProfileManager::loadXMLFile(file_path);
 #else
