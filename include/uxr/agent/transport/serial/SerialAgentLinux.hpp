@@ -120,7 +120,6 @@ namespace eprosima {
       FramingIO framing_io_;
       int opt;
       int charfd;
-      int fd;
 
       /* RPMsg-specific general variables */
       int ntimes = 1;

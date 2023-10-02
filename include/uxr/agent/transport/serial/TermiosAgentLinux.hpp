@@ -34,7 +34,7 @@ public:
 
     ~TermiosAgent();
 
-    // int getfd() { return poll_fd_.fd; };
+    int getfd() { return poll_fd_.fd; };
 
     void send_shutdown(int filedescriptor);
 

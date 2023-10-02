@@ -456,7 +456,7 @@ bool TermiosAgent::init()
     UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
     int ret;
-    unsigned char hello[5] = {42, 42, 42, 42, 42};
+    unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
 
     // Init the endpoint structure that exists at the class level
     // eptinfo.name = "rpmsg-openamp-demo-channel";
@@ -528,8 +528,8 @@ bool TermiosAgent::init()
     sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
 
     UXR_PRINTF("open endpoint path", ept_dev_path);
-    fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
-    if ( 0 >= fd ) {
+    poll_fd_.fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
+    if ( 0 >= poll_fd_.fd ) {
       UXR_ERROR("Unable to open the endpoint. Exit.", strerror(errno));
       perror(ept_dev_path);
       close(charfd);
@@ -546,7 +546,7 @@ bool TermiosAgent::init()
     // }
 
     UXR_PRINTF("Sending a first message to the remoteproc to start it.", NULL);
-    ret = ::write(fd, &hello, 5);
+    ret = ::write(poll_fd_.fd, &hello, 10);
     if ( 0  >= ret ) {
       UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
       return false;
@@ -586,14 +586,14 @@ bool TermiosAgent::fini()
   UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent FINI function.", NULL);
 
 
-  if (-1 == fd)
+  if (-1 == poll_fd_.fd)
     {
       return true;
     }
   
-  send_shutdown(fd);
+  send_shutdown(poll_fd_.fd);
 
-  if (0 != close(fd)){
+  if (0 != close(poll_fd_.fd)){
     UXR_ERROR("Unable to close the fd", strerror(errno));
     return false;
   }

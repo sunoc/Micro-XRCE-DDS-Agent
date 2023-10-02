@@ -34,7 +34,6 @@ namespace eprosima {
 		    std::bind(&SerialAgent::read_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4))
       , opt{}
       , charfd{}
-      , fd{}
     {}
 
     ssize_t SerialAgent::write_data(
@@ -58,7 +57,7 @@ namespace eprosima {
       
       ssize_t bytes_sent = -1;
 
-      bytes_sent = ::write(fd, buf, len);
+      bytes_sent = ::write(poll_fd_.fd, buf, len);
       if (0 <= bytes_sent) {
 	UXR_PRINTF("Sent payload of size", len);
 	return size_t(bytes_sent);
@@ -97,28 +96,66 @@ namespace eprosima {
 
       UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent read_data function", NULL);
 
-      ssize_t bytes_received = -1;
+      ssize_t bytes_read = 0;
 
-      UXR_PRINTF("Trying to read data until something is received.", timeout);
-      while (0 >= bytes_received) {
-	usleep(1000);
-	bytes_received = read(fd, buf, len);
-	//timeout--;
-      }
-
-      // for ( int i = 0; i<(int)len; i++ ){
-      // 	UXR_PRINTF("data:", buf[i]);
+      // UXR_PRINTF("Trying to poll the fd", NULL);
+      // int poll_rv = poll(&poll_fd_, 1, timeout);
+      // if( poll_fd_.revents & (POLLERR+POLLHUP) ) {
+      // 	UXR_ERROR("Polling the fd failed", strerror(errno));
+      // 	transport_rc = TransportRc::server_error;;
+      // } else if ( 0 < poll_rv ) {
+      // 	UXR_PRINTF("poll return value", poll_rv);
+      // } else {
+      // 	UXR_PRINTF("poll return value", poll_rv);
       // }
 
-      /* Check if something was received */
-      if ( 0 > timeout ){
-	UXR_WARNING("Read function timed out.", timeout);
-	transport_rc = (bytes_received == 0) ? TransportRc::timeout_error : TransportRc::server_error;
-      } else {
-	UXR_PRINTF("Received payload of size: ", bytes_received);
+      UXR_PRINTF("Trying to read data until something is received.", timeout);
+      while (0 >= bytes_read && 0 < timeout ) {
+	bytes_read = read(poll_fd_.fd, buf, len);
+	usleep(timeout);
+	// timeout--;
       }
 
-      return size_t(bytes_received);
+      for ( int i = 0; i<(int)len; i++ ){
+	UXR_PRINTF("data:", buf[i]);
+      }
+
+      /* Check if something was received */
+      if ( 0 > timeout && 0 >= bytes_read ){
+	UXR_WARNING("Read function timed out.", timeout);
+	transport_rc = (bytes_read == 0) ? TransportRc::timeout_error : TransportRc::server_error;
+      } 
+
+      UXR_PRINTF("Received payload of size: ", bytes_read);
+      return bytes_read;
+
+
+      // ssize_t bytes_read = 0;
+      // int poll_rv = poll(&poll_fd_, 1, timeout);
+      // if( poll_fd_.revents & (POLLERR+POLLHUP) ) {
+      // 	UXR_ERROR("Polling the fd failed", strerror(errno));
+      // 	transport_rc = TransportRc::server_error;;
+      // } else if ( 0 < poll_rv ) {
+      // 	bytes_read = read(poll_fd_.fd, buf, len);
+
+      // 	for ( int i = 0; i<(int)len; i++ ){
+      // 	  UXR_PRINTF("data:", buf[i]);
+      // 	}
+	
+      // 	if (0 > bytes_read)
+      //     {
+      // 	    UXR_ERROR("Failed to read data", strerror(errno));
+      // 	    transport_rc = TransportRc::server_error;
+      //     }
+      // } else if ( 0 == poll_rv ) {
+      // 	UXR_WARNING("Read function timed out.", timeout);
+      // 	transport_rc = TransportRc::timeout_error;
+      // } else {
+      // 	UXR_ERROR("Server error", strerror(errno));
+      // 	transport_rc =  TransportRc::server_error;
+      // }
+      // UXR_PRINTF("Received payload of size: ", bytes_read);
+      // return bytes_read;
     }
 
     bool SerialAgent::recv_message(
@@ -131,18 +168,23 @@ namespace eprosima {
       ssize_t bytes_read = 0;
 
       UXR_PRINTF("Entering method", NULL);
-      
+
       do
 	{
-	  //UXR_PRINTF("Read data loop", NULL);  
+	  /*
+	    Something's wrong, I can feel it.
+	    There is a problem with the stream framing protocol, where
+	    where the read_frames_msg is defined
+	  */
+	  UXR_PRINTF("Read data loop", NULL);  
 	  bytes_read = framing_io_.read_framed_msg(
 						   buffer_, SERVER_BUFFER_SIZE, remote_addr, timeout, transport_rc);
-	  //UXR_PRINTF("Timeout:", timeout);
-	  //UXR_PRINTF("bytes_read:", bytes_read);  
+	  UXR_PRINTF("Timeout:", timeout);
+	  UXR_PRINTF("bytes_read:", bytes_read);  
 	}
       while ((0 == bytes_read) && (0 < timeout));
 
-      //UXR_PRINTF("BP1", NULL);
+      UXR_PRINTF("BP1", NULL);
       
       if (0 < bytes_read)
 	{
@@ -150,7 +192,7 @@ namespace eprosima {
 	  input_packet.source = SerialEndPoint(remote_addr);
 	  rv = true;
 
-	  //UXR_PRINTF("BP2", NULL);
+	  UXR_PRINTF("BP2", NULL);
 	  
 	  uint32_t raw_client_key;
 	  if (Server<SerialEndPoint>::get_client_key(input_packet.source, raw_client_key))
