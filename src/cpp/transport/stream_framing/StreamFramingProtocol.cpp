@@ -119,7 +119,7 @@ size_t FramingIO::read_framed_msg(
         int& timeout,
         TransportRc& transport_rc)
 {
-  UXR_PRINTF("Entering method", buf[0]);
+  //UXR_PRINTF("Entering method", buf[0]);
     size_t rv = 0;
 
     if (read_buffer_tail_ == read_buffer_head_)
@@ -393,7 +393,7 @@ size_t FramingIO::read_framed_msg(
         }
     }
 
-    UXR_PRINTF("Method end returning", rv);
+    //UXR_PRINTF("Method end returning", rv);
     return rv;
 }
 

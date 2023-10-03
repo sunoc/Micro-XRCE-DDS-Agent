@@ -43,12 +43,9 @@
 #include <linux/rpmsg.h>
 
 
-#define RPMSG_GET_KFIFO_SIZE 1
-#define RPMSG_GET_AVAIL_DATA_SIZE 2
-#define RPMSG_GET_FREE_SPACE 3
-
-#define RPMSG_HEADER_LEN 16
-#define MAX_RPMSG_BUFF_SIZE (512 - RPMSG_HEADER_LEN)
+/* RPMsg max payload size values*/
+#define RPMSG_HEADER_LEN        16
+#define MAX_RPMSG_BUFF_SIZE     (512 - RPMSG_HEADER_LEN)
 #define PAYLOAD_MIN_SIZE	1
 #define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
 #define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
@@ -129,6 +126,10 @@ namespace eprosima {
   
       char ept_dev_name[16];
       char ept_dev_path[32];
+
+      int32_t rpmsg_buffer_len;
+      int32_t rpmsg_buffer_top;
+      uint8_t  rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
     };
 
   } // namespace uxr
