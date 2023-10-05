@@ -180,7 +180,8 @@ namespace eprosima {
 	return copylen;
 
       } else {
-	UXR_PRINTF("FUUUU", NULL);
+	UXR_PRINTF("Thou shalt not pass here", NULL);
+	transport_rc = TransportRc::timeout_error;
 	return rpmsg_buffer_len;
       }
 

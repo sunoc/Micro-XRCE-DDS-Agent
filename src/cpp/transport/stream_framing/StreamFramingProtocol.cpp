@@ -141,14 +141,14 @@ size_t FramingIO::read_framed_msg(
             {
                 case InputState::UXR_FRAMING_UNINITIALIZED:
                 {
-                    UXR_PRINTF("Entering UNINITIALIZED case", NULL );
+                    // UXR_PRINTF("Entering UNINITIALIZED case", NULL );
 		    octet = 0;
                     while ((framing_begin_flag != octet) &&
                            (read_buffer_head_ != read_buffer_tail_))
                     {
-		        UXR_PRINTF("BP1", NULL );
+		        // UXR_PRINTF("BP1", NULL );
                         octet = read_buffer_[read_buffer_tail_];
-			UXR_PRINTF("Received octet", octet );
+			// UXR_PRINTF("Received octet", octet );
                         read_buffer_tail_ =
                             static_cast<uint8_t>(
                                 static_cast<size_t>(
@@ -158,35 +158,35 @@ size_t FramingIO::read_framed_msg(
 
                     if (framing_begin_flag == octet)
                     {
-		        UXR_PRINTF("BP2", NULL );
+		        // UXR_PRINTF("BP2", NULL );
                         state_ = InputState::UXR_FRAMING_READING_SRC_ADDR;
                     }
                     else
                     {
-		        UXR_PRINTF("BP3", NULL );
+		        // UXR_PRINTF("BP3", NULL );
                         exit_cond = true;
                     }
                     break;
                 }
                 case InputState::UXR_FRAMING_READING_SRC_ADDR:
                 {
-		    UXR_PRINTF("Entering READING SRC case", NULL );
+		    // UXR_PRINTF("Entering READING SRC case", NULL );
                     if (get_next_octet(remote_addr_))
                     {
-		        UXR_PRINTF("BP1", NULL );
+		        // UXR_PRINTF("BP1", NULL );
                         state_ = InputState::UXR_FRAMING_READING_DST_ADDR;
                     }
                     else if(0 < transport_read(timeout, transport_rc, 4))
                     {
 		        /* Do nothing */
-		        UXR_PRINTF("BP2", NULL );
+		        // UXR_PRINTF("BP2", NULL );
                     }
                     else
                     {
-		        UXR_PRINTF("BP3", NULL );
+		        // UXR_PRINTF("BP3", NULL );
                         if (framing_begin_flag != remote_addr_)
                         {
-			    UXR_PRINTF("BP4", NULL );
+			    // UXR_PRINTF("BP4", NULL );
                             exit_cond = true;
                         }
                     }
@@ -194,12 +194,12 @@ size_t FramingIO::read_framed_msg(
                 }
                 case InputState::UXR_FRAMING_READING_DST_ADDR:
                 {
-		    UXR_PRINTF("Entering READMING DST case", NULL );
-		    UXR_PRINTF("Received octet", octet );
-		    UXR_PRINTF("and comparing it with local addr", local_addr_ );
+		    // UXR_PRINTF("Entering READMING DST case", NULL );
+		    // UXR_PRINTF("Received octet", octet );
+		    // UXR_PRINTF("and comparing it with local addr", local_addr_ );
                     if (get_next_octet(octet))
                     {
-		        UXR_PRINTF("BP1", local_addr_ );
+		        // UXR_PRINTF("BP1", local_addr_ );
                         state_ = (octet == local_addr_)
                                 ? InputState::UXR_FRAMING_READING_LEN_LSB
                                 : InputState::UXR_FRAMING_UNINITIALIZED;
@@ -207,19 +207,19 @@ size_t FramingIO::read_framed_msg(
                     else if(0 < transport_read(timeout, transport_rc, 3))
                     {
 		        /* Do nothing */
-		        UXR_PRINTF("BP2", NULL );
+		        // UXR_PRINTF("BP2", NULL );
                     }
                     else
                     {
-		        UXR_PRINTF("BP3", NULL );
+		        // UXR_PRINTF("BP3", NULL );
                         if (framing_begin_flag == octet)
                         {
-			    UXR_PRINTF("BP4", NULL );
+			    // UXR_PRINTF("BP4", NULL );
                             state_ = InputState::UXR_FRAMING_READING_SRC_ADDR;
                         }
                         else
                         {
-			    UXR_PRINTF("BP5", NULL );
+			    // UXR_PRINTF("BP5", NULL );
                             exit_cond = true;
                         }
                     }
@@ -227,29 +227,29 @@ size_t FramingIO::read_framed_msg(
                 }
                 case InputState::UXR_FRAMING_READING_LEN_LSB:
                 {
-		    UXR_PRINTF("Entering READING LEN LSB case", NULL );
+		    // UXR_PRINTF("Entering READING LEN LSB case", NULL );
                     if (get_next_octet(octet))
                     {
-		        UXR_PRINTF("BP1", NULL );
+		        // UXR_PRINTF("BP1", NULL );
                         msg_len_ = octet;
                         state_ = InputState::UXR_FRAMING_READING_LEN_MSB;
                     }
                     else if(0 < transport_read(timeout, transport_rc, 2))
                     {
 		        /* Do nothing */
-		        UXR_PRINTF("BP2", NULL );
+		        // UXR_PRINTF("BP2", NULL );
                     }
                     else
                     {
-		        UXR_PRINTF("BP3", NULL );
+		        // UXR_PRINTF("BP3", NULL );
                         if (framing_begin_flag == octet)
                         {
-			    UXR_PRINTF("BP4", NULL );
+			    // UXR_PRINTF("BP4", NULL );
                             state_ = InputState::UXR_FRAMING_READING_SRC_ADDR;
                         }
                         else
                         {
-			    UXR_PRINTF("BP5", NULL );
+			    // UXR_PRINTF("BP5", NULL );
                             exit_cond = true;
                         }
                     }
@@ -257,41 +257,41 @@ size_t FramingIO::read_framed_msg(
                 }
                 case InputState::UXR_FRAMING_READING_LEN_MSB:
                 {
-		    UXR_PRINTF("Entering READING LEN MSB case", NULL );
+		    // UXR_PRINTF("Entering READING LEN MSB case", NULL );
                     if (get_next_octet(octet))
                     {
-		        UXR_PRINTF("BP1", NULL );
+		        // UXR_PRINTF("BP1", NULL );
                         msg_len_ += (octet << 8);
                         msg_pos_ = 0;
                         cmp_crc_ = 0;
                         if (len < msg_len_)
                         {
-			    UXR_PRINTF("BP2", NULL );
+			    // UXR_PRINTF("BP2", NULL );
                             state_ = InputState::UXR_FRAMING_UNINITIALIZED;
                             exit_cond = true;
                         }
                         else
                         {
-			    UXR_PRINTF("BP3", NULL );
+			    // UXR_PRINTF("BP3", NULL );
                             state_ = InputState::UXR_FRAMING_READING_PAYLOAD;
                         }
                     }
                     else if(0 < transport_read(timeout, transport_rc, 1))
                     {
 		        /* Do nothing */
-		        UXR_PRINTF("BP4", NULL );
+		        // UXR_PRINTF("BP4", NULL );
                     }
                     else
                     {
-		        UXR_PRINTF("BP5", NULL );
+		        // UXR_PRINTF("BP5", NULL );
                         if (framing_begin_flag == octet)
                         {
-			    UXR_PRINTF("BP6", NULL );
+			    // UXR_PRINTF("BP6", NULL );
                             state_ = InputState::UXR_FRAMING_READING_SRC_ADDR;
                         }
                         else
                         {
-			    UXR_PRINTF("BP7", NULL );
+			    // UXR_PRINTF("BP7", NULL );
                             exit_cond = true;
                         }
                     }
@@ -299,10 +299,10 @@ size_t FramingIO::read_framed_msg(
                 }
                 case InputState::UXR_FRAMING_READING_PAYLOAD:
                 {
-		    UXR_PRINTF("Entering READING PAYLOAD case", NULL );
+		    // UXR_PRINTF("Entering READING PAYLOAD case", NULL );
                     while ((msg_pos_ < msg_len_) && get_next_octet(octet))
                     {
-		        UXR_PRINTF("BP1", NULL );
+		        // UXR_PRINTF("BP1", NULL );
                         buf[static_cast<size_t>(msg_pos_)] = octet;
                         ++msg_pos_;
                         update_crc(cmp_crc_, octet);
@@ -310,25 +310,25 @@ size_t FramingIO::read_framed_msg(
 
                     if (msg_pos_ == msg_len_)
                     {
-		        UXR_PRINTF("BP2", NULL );
+		        // UXR_PRINTF("BP2", NULL );
                         state_ = InputState::UXR_FRAMING_READING_CRC_LSB;
                     }
                     else
                     {
-		        UXR_PRINTF("BP3", NULL );
+		        // UXR_PRINTF("BP3", NULL );
                         if (framing_begin_flag == octet)
                         {
-			    UXR_PRINTF("BP4", NULL );
+			    // UXR_PRINTF("BP4", NULL );
                             state_ = InputState::UXR_FRAMING_READING_SRC_ADDR;
                         }
                         else if (0 < transport_read(timeout, transport_rc, (msg_len_ - msg_pos_) + 2))
                         {
                             /* Do nothing */
-			    UXR_PRINTF("BP5", NULL );
+			    // UXR_PRINTF("BP5", NULL );
                         }
                         else
                         {
-			    UXR_PRINTF("BP6", NULL );
+			    // UXR_PRINTF("BP6", NULL );
                             exit_cond = true;
                         }
                     }
@@ -337,7 +337,7 @@ size_t FramingIO::read_framed_msg(
                 case InputState::UXR_FRAMING_READING_CRC_LSB:
                 {
 
-		    UXR_PRINTF("Entering READING CRC LSB case", NULL );
+		    // UXR_PRINTF("Entering READING CRC LSB case", NULL );
                     if (get_next_octet(octet))
                     {
                         msg_crc_ = octet;
@@ -361,7 +361,7 @@ size_t FramingIO::read_framed_msg(
                     break;
                 }
                 case InputState::UXR_FRAMING_READING_CRC_MSB:
-		    UXR_PRINTF("Entering READING CRC MSB case", NULL );
+		    // UXR_PRINTF("Entering READING CRC MSB case", NULL );
                     if (get_next_octet(octet))
                     {
                         msg_crc_ += (octet << 8);
@@ -407,7 +407,7 @@ void FramingIO::update_crc(
 bool FramingIO::get_next_octet(
         uint8_t& octet)
 {
-  UXR_PRINTF("Entering Method", NULL);
+  // UXR_PRINTF("Entering Method", NULL);
     bool rv = false;
     octet = 0;
 
