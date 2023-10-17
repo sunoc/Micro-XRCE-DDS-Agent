@@ -41,6 +41,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <linux/rpmsg.h>
+#include <queue>
 
 
 /* RPMsg max payload size values*/
@@ -61,7 +62,7 @@
 
 namespace eprosima {
   namespace uxr {
-  
+
     class SerialAgent : public Server<SerialEndPoint>
     {
     public:
@@ -123,13 +124,15 @@ namespace eprosima {
       char rpmsg_dev[NAME_MAX];
       char rpmsg_char_name[16];
       char fpath[2*NAME_MAX];
-  
+
       char ept_dev_name[16];
       char ept_dev_path[32];
 
-      int32_t rpmsg_buffer_len;
+      //int32_t rpmsg_buffer_len;
       int32_t rpmsg_buffer_top;
-      uint8_t  rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
+      uint8_t rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
+      std::queue<uint8_t> rpmsg_queue;
+
     };
 
   } // namespace uxr
