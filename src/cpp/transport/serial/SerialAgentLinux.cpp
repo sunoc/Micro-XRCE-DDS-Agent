@@ -47,6 +47,10 @@ namespace eprosima {
     {
       size_t rv = 0;
       ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+
+      /* toggles all GPIO on channel 0*/
+      gpio[0].data = 0xFF;
+
       if (0 < bytes_written)
       {
           rv = size_t(bytes_written);
@@ -56,6 +60,9 @@ namespace eprosima {
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
       }
+
+      /* turn off all GPIO on channel 0*/
+      gpio[0].data = 0x00;
       return rv;
 
       //UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent write_data function", NULL);
