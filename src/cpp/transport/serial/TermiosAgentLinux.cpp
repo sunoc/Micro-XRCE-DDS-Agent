@@ -54,7 +54,7 @@ TermiosAgent::~TermiosAgent()
 * @brief        This function goal is to send a shutdown package
 *               to the micro-ROS client in order to stop it.
 *
-* @param	fd: the file descriptor for where to send the message 
+* @param	fd: the file descriptor for where to send the message
 *
 * @return	void
 *
@@ -68,10 +68,10 @@ void TermiosAgent::send_shutdown(int filedescriptor)
       SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG,
       SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG
   };
-  
+
   bytes_sent = ::write(filedescriptor, &umsg, sizeof(umsg));
   if (0 >= bytes_sent){
-    UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno)); 
+    UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno));
   }
 }
 
@@ -79,9 +79,9 @@ void TermiosAgent::send_shutdown(int filedescriptor)
 *
 * @brief        Creates the rpmsg endpoint
 *
-* @param	rpfd: 
+* @param	rpfd:
 *
-* @param	eptinfo: 
+* @param	eptinfo:
 *
 * @return	true if the creation succedeed. False else.
 *
@@ -101,7 +101,7 @@ int TermiosAgent::rpmsg_create_ept(int rpfd, rpmsg_endpoint_info *ept)
   }
 
   if (-1 == ret) {
-    UXR_ERROR("Failed to write to rpfd", strerror(errno)); 
+    UXR_ERROR("Failed to write to rpfd", strerror(errno));
   }
   return ret;
 }
@@ -114,9 +114,9 @@ int TermiosAgent::rpmsg_create_ept(int rpfd, rpmsg_endpoint_info *ept)
 *
 * @param	ept_name:
 *
-* @param	ept_dev_name: 
+* @param	ept_dev_name:
 *
-* @return       a string with the endpoint name if found	
+* @return       a string with the endpoint name if found
 *
 * @note		None.
 *
@@ -166,9 +166,9 @@ char *TermiosAgent::get_rpmsg_ept_dev_name(const char *rpmsg_name,
 
 /*******************************************************************************
 *
-* @brief        Binds the rpmsg device to rpmsg char driver 
+* @brief        Binds the rpmsg device to rpmsg char driver
 *
-* @param	rpmsg_dev_name: 
+* @param	rpmsg_dev_name:
 *
 * @return	0 as a int if OK, negative error code else
 *
@@ -226,9 +226,9 @@ int TermiosAgent::bind_rpmsg_chrdev(const char *rpmsg_name)
 *
 * @brief        Looks for the rpmsg character device file descriptor
 *
-* @param	rpmsg_name: 
+* @param	rpmsg_name:
 *
-* @param	rpmsg_ctrl_name: 
+* @param	rpmsg_ctrl_name:
 *
 * @return	true if the creation succedeed. False else.
 *
@@ -276,9 +276,9 @@ int TermiosAgent::get_rpmsg_chrdev_fd(const char *rpmsg_name,
 *
 * @brief        Sets the source destination
 *
-* @param	out: 
+* @param	out:
 *
-* @param	pep: 
+* @param	pep:
 *
 * @return	void
 *
@@ -305,9 +305,9 @@ void TermiosAgent::set_src_dst(char *out, rpmsg_endpoint_info *pep)
 *
 * @brief        Looks for the channel name
 *
-* @param	out: 
+* @param	out:
 *
-* @param	pep: 
+* @param	pep:
 *
 * @return	the first dirent matching rpmsg-openamp-demo-channel
 *               in /sys/bus/rpmsg/devices/ E.g.:
@@ -327,7 +327,7 @@ void TermiosAgent::lookup_channel(char *out, rpmsg_endpoint_info *pep)
 	  UXR_ERROR("errno is", strerror(errno));
 	  return;
 	}
-	
+
 	UXR_PRINTF("1", NULL);
 	while ((ent = readdir(dir)) != NULL) {
 	        UXR_PRINTF("2", NULL);
@@ -351,8 +351,8 @@ void TermiosAgent::lookup_channel(char *out, rpmsg_endpoint_info *pep)
 	UXR_WARNING("Seaching in dpath", dpath);
 	UXR_WARNING("No dev file for", pep->name);
 }
-  
-  
+
+
 bool TermiosAgent::init()
 {
 //     bool rv = false;
@@ -464,14 +464,15 @@ bool TermiosAgent::init()
     // eptinfo.dst = 0;
     // rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
     strcpy(rpmsg_dev,"virtio0.rpmsg-openamp-demo-channel.-1.0");
-    
+
     ret = system("set -x; modprobe rpmsg_char");
     // ret = system("set -x; lsmod; modprobe rpmsg_char");
-    if (ret < 0) {
-      UXR_ERROR("Failed to load rpmsg_char driver.", ret);
-      return false;
-    }
-  
+    if (ret < 0)
+      {
+	UXR_ERROR("Failed to load rpmsg_char driver.", ret);
+	return false;
+      }
+
     UXR_PRINTF("Calling lookup cha func", NULL);
     lookup_channel(rpmsg_dev, &eptinfo);
 
@@ -496,21 +497,24 @@ bool TermiosAgent::init()
     // }
 
     sprintf(fpath, RPMSG_BUS_SYS "/devices/%s", rpmsg_dev);
-    if (access(fpath, F_OK)) {
-      UXR_ERROR("access failed for fpath", fpath);
-      UXR_ERROR("errno is", strerror(errno));
-      return false;
-    }
+    if (access(fpath, F_OK))
+      {
+	UXR_ERROR("access failed for fpath", fpath);
+	UXR_ERROR("errno is", strerror(errno));
+	return false;
+      }
     ret = bind_rpmsg_chrdev(rpmsg_dev);
-    if (0 > ret) {
-      UXR_ERROR("failed to bind chrdev", strerror(errno));
-      return false;
-    }
+    if (0 > ret)
+      {
+	UXR_ERROR("failed to bind chrdev", strerror(errno));
+	return false;
+      }
     charfd = get_rpmsg_chrdev_fd(rpmsg_dev, rpmsg_char_name);
-    if (0 >= charfd) {
-      UXR_ERROR("obtained charfd ", strerror(errno));
-      return false;
-    }
+    if (0 >= charfd)
+      {
+	UXR_ERROR("obtained charfd ", strerror(errno));
+	return false;
+      }
 
     /* Create endpoint from rpmsg char driver */
     UXR_PRINTF("rpmsg_create_ept: name", eptinfo.name);
@@ -522,19 +526,19 @@ bool TermiosAgent::init()
       UXR_ERROR("rpmsg_create_ept failed with error", strerror(errno));
       return false;
     }
-    if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo.name,
-				ept_dev_name))
+    if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo.name, ept_dev_name))
       return false;
     sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
 
     UXR_PRINTF("open endpoint path", ept_dev_path);
     poll_fd_.fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
-    if ( 0 >= poll_fd_.fd ) {
-      UXR_ERROR("Unable to open the endpoint. Exit.", strerror(errno));
-      perror(ept_dev_path);
-      close(charfd);
-      return false;
-    }
+    if ( 0 >= poll_fd_.fd )
+      {
+	UXR_ERROR("Unable to open the endpoint. Exit.", strerror(errno));
+	perror(ept_dev_path);
+	close(charfd);
+	return false;
+      }
 
 
     // i_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
@@ -547,10 +551,11 @@ bool TermiosAgent::init()
 
     UXR_PRINTF("Sending a first message to the remoteproc to start it.", NULL);
     ret = ::write(poll_fd_.fd, &hello, 10);
-    if ( 0  >= ret ) {
-      UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
-      return false;
-    }
+    if ( 0  >= ret )
+      {
+	UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
+	return false;
+      }
 
     UXR_PRINTF("RPMsg init is successful.", NULL);
     return true;
@@ -587,23 +592,24 @@ bool TermiosAgent::fini()
 
 
   if (-1 == poll_fd_.fd)
-    {
-      return true;
-    }
-  
+    return true;
+
   send_shutdown(poll_fd_.fd);
 
-  if (0 != close(poll_fd_.fd)){
-    UXR_ERROR("Unable to close the fd", strerror(errno));
-    return false;
-  }
-      
-  if (0 <= charfd){
-    if (0 != close(charfd)){
-      UXR_ERROR("Unable to close the charfd", strerror(errno));
+  if (0 != close(poll_fd_.fd))
+    {
+      UXR_ERROR("Unable to close the fd", strerror(errno));
       return false;
     }
-  }
+
+  if (0 <= charfd)
+    {
+      if (0 != close(charfd))
+	{
+	  UXR_ERROR("Unable to close the charfd", strerror(errno));
+	  return false;
+	}
+    }
 
   UXR_PRINTF("Everything was freed and close cleanly. Returning true.", NULL);
   return true;
