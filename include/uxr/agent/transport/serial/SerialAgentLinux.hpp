@@ -49,11 +49,11 @@
 #include <sys/stat.h>
 
 /* GPIO */
-#define NUM_GPIO = 4;
-#define BIT_GPIO = 8;
+#define NUM_GPIO 4
+#define BIT_GPIO 8
 
-#define gpio_base	= 0xa0000000;
-#define gpio_size	= sizeof(GPIO_t) * NUM_GPIO;
+#define gpio_base 0xa0000000
+#define gpio_size (sizeof(GPIO_t) * NUM_GPIO)
 
 /* RPMsg max payload size values*/
 #define RPMSG_HEADER_LEN        16
