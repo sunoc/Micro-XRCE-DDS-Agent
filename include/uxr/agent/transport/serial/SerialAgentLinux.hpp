@@ -52,7 +52,7 @@
 #define NUM_GPIO = 4;
 #define BIT_GPIO = 8;
 
-#define gpio_base	= 0xa000'0000;
+#define gpio_base	= 0xa0000000;
 #define gpio_size	= sizeof(GPIO_t) * NUM_GPIO;
 
 /* RPMsg max payload size values*/
@@ -150,7 +150,7 @@ namespace eprosima {
       };
 
       int GPIO_fd;
-      int gpio;
+      GPIO_t* gpio;
 
     };
 
