@@ -566,11 +566,11 @@ bool TermiosAgent::init()
 	return -1;
       }
 
-    int gpio = static_cast<GPIO_t*>(mmap(nullptr, gpio_size, PROT_READ|PROT_WRITE, MAP_SHARED, GPIO_fd, gpio_base));
+    gpio = static_cast<GPIO_t*>(mmap(nullptr, gpio_size, PROT_READ|PROT_WRITE, MAP_SHARED, GPIO_fd, gpio_base));
     if (!gpio)
       {
 	std::cout << "mmap error" << std::endl;
-	close(fd);
+	close(GPIO_fd);
 	return -1;
       }
 
