@@ -86,7 +86,8 @@ namespace eprosima {
 
       /* Monitoring point (7) */
       /* turns on PIN 0 on GPIO channel 3 */
-      gpio[3].data = gpio[0].data | 0x1;
+      gpio[3].data = gpio[3].data | 0x1;
+
       /* If we need more data, we go and read some */
       while ( len > rpmsg_queue.size() ) {
 	rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
@@ -99,7 +100,12 @@ namespace eprosima {
 	usleep(100);
 
 	attempts--;
-	if ( 0 >= attempts ) return 0;
+	if ( 0 >= attempts )
+	  {
+	    /* turns off PIN 0 on GPIO channel 3 */
+	    gpio[3].data = gpio[3].data & ~(0x1);
+	    return 0;
+	  }
       }
 
       for ( int i = 0; i<(int)len; i++ ) {
@@ -109,7 +115,7 @@ namespace eprosima {
       }
 
       /* turns off PIN 0 on GPIO channel 3 */
-      gpio[3].data = gpio[0].data & ~(0x1);
+      gpio[3].data = gpio[3].data & ~(0x1);
       return len;
 
     }
