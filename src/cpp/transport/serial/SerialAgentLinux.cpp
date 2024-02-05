@@ -47,10 +47,12 @@ namespace eprosima {
 				    TransportRc& transport_rc)
     {
       size_t rv = 0;
+
+      /* Monitoring point (2) */
+      /* turns on PIN 1 on GPIO channel 0 */
+      gpio[0].data = gpio[0].data | 0x2;
       ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
 
-      /* toggles all GPIO on channel 0 */
-      gpio[0].data = 0xFF;
 
       if (0 < bytes_written)
       {
@@ -62,8 +64,8 @@ namespace eprosima {
           transport_rc = TransportRc::server_error;
       }
 
-      /* turn off all GPIO on channel 0 */
-      gpio[0].data = 0x00;
+      /* turns off PIN 1 on GPIO channel 0 */
+      gpio[0].data = gpio[0].data & ~(0x2);
       return rv;
     }
 
@@ -82,8 +84,9 @@ namespace eprosima {
 	return errno;
       }
 
-      /* toggles all GPIO on channel 1 */
-      gpio[1].data = 0xFF;
+      /* Monitoring point (7) */
+      /* turns on PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[0].data | 0x1;
       /* If we need more data, we go and read some */
       while ( len > rpmsg_queue.size() ) {
 	rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
@@ -105,8 +108,8 @@ namespace eprosima {
 	//UXR_PRINTF("data put in buf:", buf[i]);
       }
 
-      /* turn off all GPIO on channel 1 */
-      gpio[1].data = 0x00;
+      /* turns off PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[0].data & ~(0x1);
       return len;
 
     }
