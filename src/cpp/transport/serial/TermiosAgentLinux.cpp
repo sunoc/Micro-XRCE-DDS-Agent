@@ -558,6 +558,7 @@ bool TermiosAgent::init()
       }
     UXR_PRINTF("RPMsg init is successful.", NULL);
 
+#ifdef GPIO_MONITORING
     UXR_PRINTF("GPIO being init.", NULL);
     GPIO_fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (GPIO_fd <= 0)
@@ -575,6 +576,7 @@ bool TermiosAgent::init()
       }
 
     UXR_PRINTF("GPIO init is successful.", NULL);
+#endif
     return true;
 }
 

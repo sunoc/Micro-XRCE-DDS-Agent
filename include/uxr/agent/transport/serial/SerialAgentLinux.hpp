@@ -48,12 +48,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* #define GPIO_MONITORING */
+
+#ifdef GPIO_MONITORING
 /* GPIO */
 #define NUM_GPIO 4
 #define BIT_GPIO 8
 
 #define gpio_base 0xa0000000
 #define gpio_size (sizeof(GPIO_t) * NUM_GPIO)
+#endif
 
 /* RPMsg max payload size values*/
 #define RPMSG_HEADER_LEN        16
@@ -144,6 +148,7 @@ namespace eprosima {
       uint8_t rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
       std::queue<uint8_t> rpmsg_queue;
 
+#ifdef GPIO_MONITORING
       /* GPIO */
       struct alignas(0x200) GPIO_t {
 	uint32_t	data;
@@ -151,6 +156,7 @@ namespace eprosima {
 
       int GPIO_fd;
       GPIO_t* gpio;
+#endif
 
     };
 
