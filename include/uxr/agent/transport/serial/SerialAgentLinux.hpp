@@ -48,12 +48,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-/* #define GPIO_MONITORING */
+#define GPIO_MONITORING
 
 #ifdef GPIO_MONITORING
 /* GPIO */
 #define NUM_GPIO 4
-#define BIT_GPIO 8
 
 #define gpio_base 0xa0000000
 #define gpio_size (sizeof(GPIO_t) * NUM_GPIO)

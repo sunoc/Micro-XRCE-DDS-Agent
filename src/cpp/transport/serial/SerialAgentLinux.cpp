@@ -46,13 +46,12 @@ namespace eprosima {
 				    size_t len,
 				    TransportRc& transport_rc)
     {
-      size_t rv = 0;
-
 #ifdef GPIO_MONITORING
-      /* turns on PIN 1 on GPIO channel 0 */
-      gpio[0].data = gpio[0].data | 0x2;
+      /* turns on PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data | 0x1;
 #endif
 
+      size_t rv = 0;
       ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
 
 
@@ -66,11 +65,6 @@ namespace eprosima {
           transport_rc = TransportRc::server_error;
       }
 
-#ifdef GPIO_MONITORING
-      /* turns off PIN 1 on GPIO channel 0 */
-      gpio[0].data = gpio[0].data & ~(0x2);
-#endif
-
       return rv;
     }
 
@@ -80,6 +74,11 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
+#ifdef GPIO_MONITORING
+      /* turns off PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
+
       int rpmsg_buffer_len = 0;
       int attempts = 10;
 
@@ -89,10 +88,7 @@ namespace eprosima {
 	return errno;
       }
 
-#ifdef GPIO_MONITORING
-      /* turns on PIN 0 on GPIO channel 3 */
-      gpio[3].data = gpio[3].data | 0x1;
-#endif
+
 
       /* If we need more data, we go and read some */
       while ( len > rpmsg_queue.size() ) {
@@ -108,10 +104,6 @@ namespace eprosima {
 	attempts--;
 	if ( 0 >= attempts )
 	  {
-#ifdef GPIO_MONITORING
-	    /* turns off PIN 0 on GPIO channel 3 */
-	    gpio[3].data = gpio[3].data & ~(0x1);
-#endif
 	    return 0;
 	  }
       }
@@ -121,11 +113,6 @@ namespace eprosima {
 	rpmsg_queue.pop();
 	//UXR_PRINTF("data put in buf:", buf[i]);
       }
-
-#ifdef GPIO_MONITORING
-      /* turns off PIN 0 on GPIO channel 3 */
-      gpio[3].data = gpio[3].data & ~(0x1);
-#endif
       return len;
 
     }
