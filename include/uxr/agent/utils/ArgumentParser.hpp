@@ -39,6 +39,8 @@
 #include <uxr/agent/transport/serial/PseudoTerminalAgentLinux.hpp>
 #include <uxr/agent/transport/serial/baud_rate_table_linux.h>
 
+#include <uxr/agent/transport/rpmsg/TermiosAgentLinux.hpp>
+
 #ifdef UAGENT_SOCKETCAN_PROFILE
 #include <uxr/agent/transport/can/CanAgentLinux.hpp>
 #endif // UAGENT_SOCKETCAN_PROFILE
@@ -71,6 +73,7 @@ enum class TransportKind
     SERIAL,
     MULTISERIAL,
     PSEUDOTERMINAL,
+    RPMSG,
 #endif // _WIN32
     HELP
 };
@@ -697,6 +700,92 @@ protected:
 };
 
 /*************************************************************************************************
+ * Specific arguments for RPMsg internal transports
+ *************************************************************************************************/
+template <typename AgentType>
+class RPMsgArgs : public PseudoTerminalArgs<AgentType>
+{
+public:
+    RPMsgArgs()
+        : PseudoTerminalArgs<AgentType>()
+        , dev_("-D", "--dev")
+        , file_("-f", "--file")
+    {
+    }
+
+    bool parse(
+            int argc,
+            char** argv)
+    {
+        if (!PseudoTerminalArgs<AgentType>::parse(argc, argv))
+        {
+            return false;
+        }
+        ParseResult parse_dev = dev_.parse_argument(argc, argv);
+        ParseResult parse_file = file_.parse_argument(argc, argv);
+        if (ParseResult::VALID != parse_dev && ParseResult::VALID != parse_file)
+        {
+            std::cerr << "Warning: '--dev <value>' or '--file <value>' is required" << std::endl;
+        }
+        else if(ParseResult::VALID == parse_dev && ParseResult::VALID == parse_file)
+        {
+            std::cerr << "Warning: '--dev <value>' and '--file <value>' are not allowed" << std::endl;
+        }
+        else if(ParseResult::VALID == parse_file)
+        {
+            std::ifstream myfile(file_.value());
+
+            if (!myfile)
+            {
+                std::cerr << "Error opening file '" << file_.value() << "': " << strerror(errno) << std::endl;
+                return false;
+            }
+
+            myfile.close();
+        }
+
+
+        return (((ParseResult::VALID == parse_dev) ^ (ParseResult::VALID == parse_file)) ? true : false);
+    }
+
+    const std::string dev()
+    {
+        std::string port;
+
+        if (dev_.found())
+        {
+            port = dev_.value();
+        }
+        else if (file_.found())
+        {
+            std::string line;
+            std::ifstream myfile(file_.value());
+
+            if (myfile.fail())
+            {
+                std::cerr << "Error opening file: " << strerror(errno) << std::endl;
+            }
+
+            std::getline(myfile, port);
+            myfile.close();
+        }
+
+        return port;
+    }
+
+    const std::string get_help() const
+    {
+        std::stringstream ss;
+        ss << "    " << dev_.get_help();
+        return ss.str();
+    }
+
+private:
+    Argument<std::string> dev_;
+    Argument<std::string> file_;
+};
+
+/*************************************************************************************************
  * Specific arguments for serial termios transports
  *************************************************************************************************/
 template <typename AgentType>
@@ -950,6 +1039,7 @@ public:
         , serial_args_()
         , multiserial_args_()
         , pseudoterminal_args_()
+	, rpmsg_args_()
 #endif // _WIN32
         , transport_kind_(transport_kind)
         , agent_server_()
@@ -1000,6 +1090,11 @@ public:
             case TransportKind::PSEUDOTERMINAL:
             {
                 result &= pseudoterminal_args_.parse(argc_, argv_);
+                break;
+            }
+	    case TransportKind::RPMSG:
+            {
+                result &= rpmsg_args_.parse(argc_, argv_);
                 break;
             }
 #endif // _WIN32
@@ -1089,9 +1184,10 @@ public:
         ss << "  * IPvX (udp4, udp6, tcp4, tcp6)" << std::endl;
         ss << ip_args_.get_help();
 #ifndef _WIN32
-        ss << "  * SERIAL (serial, multiserial, pseudoterminal)" << std::endl;
+        ss << "  * SERIAL (serial, multiserial, pseudoterminal, rpmsg)" << std::endl;
         ss << pseudoterminal_args_.get_help();
         ss << serial_args_.get_help();
+	ss << rpmsg_args_.get_help();
 #ifdef UAGENT_SOCKETCAN_PROFILE
         ss << "  * CAN FD (canfd)" << std::endl;
         ss << can_args_.get_help();
@@ -1114,6 +1210,7 @@ private:
     SerialArgs<AgentType> serial_args_;
     MultiSerialArgs<AgentType> multiserial_args_;
     PseudoTerminalArgs<AgentType> pseudoterminal_args_;
+    RPMsgArgs<AgentType> rpmsg_args_;
 #endif // _WIN32
     TransportKind transport_kind_;
     std::unique_ptr<AgentType> agent_server_;
@@ -1135,6 +1232,26 @@ template<> inline bool ArgumentParser<TermiosAgent>::launch_agent()
     else
     {
         std::cerr << "Error while starting serial agent!" << std::endl;
+    }
+
+    return false;
+}
+
+template<> inline bool ArgumentParser<TermiosRPMsgAgent>::launch_agent()
+{
+    struct termios attr = init_termios(rpmsg_args_.baud_rate().c_str());
+    
+    agent_server_.reset(new TermiosRPMsgAgent(
+        rpmsg_args_.dev().c_str(),  O_RDWR | O_NOCTTY, attr, 0, utils::get_mw_kind(common_args_.middleware())));
+
+    if (agent_server_->start())
+    {
+        common_args_.apply_actions(agent_server_);
+        return true;
+    }
+    else
+    {
+        std::cerr << "Error while starting RPMsg agent!" << std::endl;
     }
 
     return false;

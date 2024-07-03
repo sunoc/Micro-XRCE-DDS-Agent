@@ -24,6 +24,7 @@
 #include <uxr/agent/transport/endpoint/SerialEndPoint.hpp>
 #include <uxr/agent/transport/endpoint/MultiSerialEndPoint.hpp>
 #include <uxr/agent/transport/endpoint/CustomEndPoint.hpp>
+#include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
 
 #include <functional>
 
@@ -37,6 +38,7 @@ extern template class Processor<IPv6EndPoint>;
 extern template class Processor<CanEndPoint>;
 extern template class Processor<SerialEndPoint>;
 extern template class Processor<MultiSerialEndPoint>;
+extern template class Processor<RPMsgEndPoint>;
 extern template class Processor<CustomEndPoint>;
 
 template<typename EndPoint>
@@ -316,6 +318,7 @@ template class Server<IPv6EndPoint>;
 template class Server<CanEndPoint>;
 template class Server<SerialEndPoint>;
 template class Server<MultiSerialEndPoint>;
+template class Server<RPMsgEndPoint>;
 template class Server<CustomEndPoint>;
 
 } // namespace uxr

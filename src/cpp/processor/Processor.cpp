@@ -26,6 +26,7 @@
 #include <uxr/agent/transport/endpoint/CanEndPoint.hpp>
 #include <uxr/agent/transport/endpoint/SerialEndPoint.hpp>
 #include <uxr/agent/transport/endpoint/MultiSerialEndPoint.hpp>
+#include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
 #include <uxr/agent/transport/endpoint/CustomEndPoint.hpp>
 
 namespace eprosima {
@@ -1046,6 +1047,7 @@ template class Processor<IPv6EndPoint>;
 template class Processor<CanEndPoint>;
 template class Processor<SerialEndPoint>;
 template class Processor<MultiSerialEndPoint>;
+template class Processor<RPMsgEndPoint>;
 template class Processor<CustomEndPoint>;
 
 } // namespace uxr
