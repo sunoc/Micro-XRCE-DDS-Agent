@@ -556,8 +556,27 @@ bool TermiosAgent::init()
 	UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
 	return false;
       }
-
     UXR_PRINTF("RPMsg init is successful.", NULL);
+
+#ifdef GPIO_MONITORING
+    UXR_PRINTF("GPIO being init.", NULL);
+    GPIO_fd = open("/dev/mem", O_RDWR | O_SYNC);
+    if (GPIO_fd <= 0)
+      {
+	std::cout << "open error" << std::endl;
+	return -1;
+      }
+
+    gpio = static_cast<GPIO_t*>(mmap(nullptr, gpio_size, PROT_READ|PROT_WRITE, MAP_SHARED, GPIO_fd, gpio_base));
+    if (!gpio)
+      {
+	std::cout << "mmap error" << std::endl;
+	close(GPIO_fd);
+	return -1;
+      }
+
+    UXR_PRINTF("GPIO init is successful.", NULL);
+#endif
     return true;
 }
 

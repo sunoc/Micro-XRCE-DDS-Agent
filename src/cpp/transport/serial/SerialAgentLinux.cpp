@@ -16,6 +16,7 @@
 #include <uxr/agent/utils/Conversion.hpp>
 #include <uxr/agent/logger/Logger.hpp>
 
+
 #include <unistd.h>
 
 namespace eprosima {
@@ -45,8 +46,15 @@ namespace eprosima {
 				    size_t len,
 				    TransportRc& transport_rc)
     {
+#ifdef GPIO_MONITORING
+      /* turns on PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data | 0x1;
+#endif
+
       size_t rv = 0;
       ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+
+
       if (0 < bytes_written)
       {
           rv = size_t(bytes_written);
@@ -56,21 +64,8 @@ namespace eprosima {
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
       }
+
       return rv;
-
-      //UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent write_data function", NULL);
-
-      // ssize_t bytes_sent = -1;
-
-      // bytes_sent = ::write(poll_fd_.fd, buf, len);
-      // if (0 <= bytes_sent) {
-      // 	//UXR_PRINTF("Sent payload of size", len);
-      // 	return size_t(bytes_sent);
-      // } else {
-      // 	UXR_ERROR("sending data failed with errno", strerror(errno));
-      // 	transport_rc = TransportRc::server_error;
-      // 	return -1;
-      // }
     }
 
     ssize_t SerialAgent::read_data(
@@ -79,122 +74,10 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
-
-      /* ==================================================================== */
-      /* Original read_data code                                              */
-      /* ==================================================================== */
-      // ssize_t bytes_read = 0;
-      // int poll_rv = poll(&poll_fd_, 1, timeout);
-      // UXR_PRINTF("poll return value", poll_rv);
-      // if(poll_fd_.revents & (POLLERR+POLLHUP))
-      // {
-      //     transport_rc = TransportRc::server_error;;
-      // }
-      // else if (0 < poll_rv)
-      // {
-      //     bytes_read = read(poll_fd_.fd, buf, len);
-      //     if (0 > bytes_read)
-      //     {
-      //         transport_rc = TransportRc::server_error;
-      //     }
-      // }
-      // else
-      // {
-      //     transport_rc = (poll_rv == 0) ? TransportRc::timeout_error : TransportRc::server_error;
-      // }
-      // return bytes_read;
-
-
-      /* ==================================================================== */
-      /* Somewhat working withe an intermediate buffer                        */
-      /* ==================================================================== */
-
-      // //UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent read_data function", NULL);
-
-      // // this is the index to write to the buf
-      // int i = 0;
-
-      // /* checks the given timeout value */
-      // //UXR_PRINTF("Checking the timeout value", timeout);
-      // if ( 0 >= timeout){
-      // 	UXR_ERROR("Timeout: ", strerror(errno));
-      // 	transport_rc = TransportRc::timeout_error;
-      // 	return errno;
-      // }
-
-
-      // /* We need to get more data to satisfy the len */
-      // while ( (int)len > rpmsg_buffer_len) {
-
-      // 	rpmsg_buffer_len += read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
-
-      // 	/* If an error code is received from the read function*/
-      // 	if ( 0 > rpmsg_buffer_len ){
-      // 	  rpmsg_buffer_len = 0;
-      // 	  return rpmsg_buffer_len;
-      // 	}
-
-      // 	usleep(100);
-      // }
-
-      // /* Then, if enough data for requested len were received */
-      // if ( 0 < rpmsg_buffer_len ){
-
-
-      // 	/* We check if we have leftovers */
-      // 	if ( 0 < rpmsg_leftover_len ) {
-      // 	  for (i; i<rpmsg_leftover_len; i++) {
-      // 	    buf[i] = rpmsg_leftover[i];
-      // 	  }
-      // 	  rpmsg_buffer_len += rpmsg_leftover_len;
-      // 	}
-
-      // 	/* Requested data is exactly the same as read data*/
-      // 	if ( len == (size_t)rpmsg_buffer_len ) {
-
-      // 	  UXR_PRINTF("have exactly the needed data.", NULL);
-
-      // 	  /* Actually writting the data received to the buf */
-      // 	  for ( int i = 0; i<(int)len; i++ ){
-      // 	    buf[i] = rpmsg_buffer[i + rpmsg_buffer_top];
-      // 	    UXR_PRINTF("data:", buf[i]);
-      // 	  }
-
-      // 	  rpmsg_buffer_len = 0;
-      // 	  rpmsg_buffer_top = 0;
-
-      // 	  /* We have more data than requested */
-      // 	} else if ( len < (size_t)rpmsg_buffer_len) {
-
-      // 	  UXR_PRINTF("have more data than needed.", NULL);
-      // 	  UXR_PRINTF("expected len", len);
-      // 	  UXR_PRINTF("actual rpmsg_buffer_len", rpmsg_buffer_len);
-
-      // 	  /* Actually writting the data received to the buf */
-      // 	  for ( int i = 0; i<(int)len; i++ ){
-      // 	    buf[i] = rpmsg_buffer[i + rpmsg_buffer_top];
-      // 	    UXR_PRINTF("data:", buf[i]);
-      // 	  }
-
-      // 	  rpmsg_buffer_len -= (int)len;
-      // 	  rpmsg_buffer_top += (int)len;
-
-
-      // 	} else if ( len > (size_t)rpmsg_buffer_len) {
-      // 	  /* Not enough data received */
-      // 	  UXR_ERROR("Thou shalt not pass here", NULL);
-      // 	  UXR_PRINTF("expected len", len);
-      // 	  UXR_PRINTF("actual rpmsg_buffer_len", rpmsg_buffer_len);
-      // 	  transport_rc = TransportRc::timeout_error;
-      // 	}
-
-
-      // 	return len;
-      // }
-
-      /* ==================================================================== */
-      /* System with a CPP queue                                              */
-      /* ==================================================================== */
+#ifdef GPIO_MONITORING
+      /* turns off PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
 
       int rpmsg_buffer_len = 0;
       int attempts = 10;
@@ -204,6 +87,8 @@ namespace eprosima {
 	transport_rc = TransportRc::timeout_error;
 	return errno;
       }
+
+
 
       /* If we need more data, we go and read some */
       while ( len > rpmsg_queue.size() ) {
@@ -217,7 +102,10 @@ namespace eprosima {
 	usleep(100);
 
 	attempts--;
-	if ( 0 >= attempts ) return 0;
+	if ( 0 >= attempts )
+	  {
+	    return 0;
+	  }
       }
 
       for ( int i = 0; i<(int)len; i++ ) {
@@ -225,7 +113,6 @@ namespace eprosima {
 	rpmsg_queue.pop();
 	//UXR_PRINTF("data put in buf:", buf[i]);
       }
-
       return len;
 
     }
