@@ -408,15 +408,6 @@ bool TermiosRPMsgAgent::init()
 	return false;
       }
 
-
-    // i_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
-    // r_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
-
-    // if (i_payload == 0 || r_payload == 0) {
-    //   UXR_ERROR("Failed to allocate memory for payload.", strerror(errno));
-    //   return false;
-    // }
-
     UXR_PRINTF("Sending a first message to the remoteproc to start it.", NULL);
     ret = ::write(poll_fd_.fd, &hello, 10);
     if ( 0  >= ret )
@@ -426,6 +417,19 @@ bool TermiosRPMsgAgent::init()
       }
 
     UXR_PRINTF("RPMsg init is successful.", NULL);
+
+    /* DMA buffer from User Space */
+    UXR_PRINTF("Setting up the UDMABUF.", NULL);
+    if (-1 != (udmabuf_fd  = open("/dev/udmabuf0", O_RDWR)))
+      {
+	udmabuf = mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+      }
+    else
+      {
+	UXR_ERROR("Unable to open /dev/udmabuf0.", strerror(errno));
+	return false;
+      }
+    UXR_PRINTF("UDMABUF device open is successful.", NULL);
     return true;
 }
 

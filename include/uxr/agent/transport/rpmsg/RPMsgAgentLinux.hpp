@@ -28,7 +28,7 @@
 #include <string.h>
 #include <linux/rpmsg.h>
 #include <queue>
-
+#include <sys/mman.h>
 
 /* RPMsg max payload size values*/
 #define RPMSG_HEADER_LEN        16
@@ -77,15 +77,6 @@ namespace eprosima {
 
       virtual bool fini() = 0;
 
-      bool recv_message(
-			InputPacket<RPMsgEndPoint>& input_packet,
-			int timeout,
-			TransportRc& transport_rc) final;
-
-      bool send_message(
-			OutputPacket<RPMsgEndPoint> output_packet,
-			TransportRc& transport_rc) final;
-
       ssize_t write_data(
 			 uint8_t* buf,
 			 size_t len,
@@ -96,6 +87,15 @@ namespace eprosima {
 			size_t len,
 			int timeout,
 			TransportRc& transport_rc);
+
+      bool recv_message(
+			InputPacket<RPMsgEndPoint>& input_packet,
+			int timeout,
+			TransportRc& transport_rc) final;
+
+      bool send_message(
+			OutputPacket<RPMsgEndPoint> output_packet,
+			TransportRc& transport_rc) final;
 
     protected:
       const uint8_t addr_;
@@ -118,6 +118,10 @@ namespace eprosima {
       int32_t rpmsg_buffer_top;
       uint8_t rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
       std::queue<uint8_t> rpmsg_queue;
+
+      /* udmabuf specific variables*/
+      int udmabuf_fd;
+      void *udmabuf;
 
     };
 
