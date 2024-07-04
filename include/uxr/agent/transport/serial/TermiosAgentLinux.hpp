@@ -36,28 +36,7 @@ public:
 
     int getfd() { return poll_fd_.fd; };
 
-    void send_shutdown(int filedescriptor);
-
-    int rpmsg_create_ept(int rpfd,
-			 rpmsg_endpoint_info *ept);
-
-    char *get_rpmsg_ept_dev_name(const char *rpmsg_name,
-					const char *ept_name,
-					char *ept_device_name);
-  
-    int bind_rpmsg_chrdev(const char *rpmsg_name);
-  
-    int get_rpmsg_chrdev_fd(const char *rpmsg_name,
-				   char *rpmsg_ctrl_name);
-  
-    void set_src_dst(char *out,
-			    rpmsg_endpoint_info *pep);
-  
-    void lookup_channel(char *out,
-			rpmsg_endpoint_info *pep);
-
 private:
-
     bool init() final;
     bool fini() final;
     bool handle_error(
