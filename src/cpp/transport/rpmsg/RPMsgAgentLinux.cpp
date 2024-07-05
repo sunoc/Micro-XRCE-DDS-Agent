@@ -44,7 +44,21 @@ namespace eprosima {
 			   TransportRc& transport_rc)
     {
       size_t rv = 0;
-      ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+      ssize_t bytes_written;
+      unsigned long long udmabuf_payload;
+
+
+      /* Put the data in the dma buf. */
+      for (size_t i = 0; i<len; i++)
+	{
+	  ((uint8_t *)udmabuf)[i] = buf[i];
+	}
+
+      /* Put the length and physical addr in the rpmsg buf. */
+      udmabuf_payload = udma_phys_addr + (len << 32);
+      bytes_written = ::write(poll_fd_.fd, &udmabuf_payload, sizeof(udmabuf_payload));
+
+      /* Test if anything was sent. */
       if (0 < bytes_written)
 	{
           rv = size_t(bytes_written);
@@ -69,8 +83,9 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-      int rpmsg_buffer_len = 0;
-      int attempts = 10;
+      size_t rpmsg_buffer_len = 0;
+      unsigned long rpmsg_phys_addr;
+
 
       if ( 0 >= timeout )
 	{
@@ -81,36 +96,36 @@ namespace eprosima {
 
 
       /* If we need more data, we go and read some */
-      while ( len > rpmsg_queue.size() )
+      while ( len > rpmsg_buffer_len )
 	{
 	  rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
 
 
 	  /* Expecting to get 64bits of data form the Client. */
-	  if ( 4 != rpmsg_buffer_len )
+	  if ( 8 != rpmsg_buffer_len )
 	    {
 	      UXR_ERROR("Wrong length received for a UDMABUF.", strerror(errno));
 	    }
 	  else
 	    {
-	      /* Check if the received address matches the UDMA physical address.*/
+
+	      rpmsg_phys_addr = rpmsg_buffer[0]
+		+ (rpmsg_buffer[1] << 8)
+		+ (rpmsg_buffer[2] << 16)
+		+ (rpmsg_buffer[3] << 24);
+	      if ( udma_phys_addr != rpmsg_phys_addr)
+		{
+		  UXR_ERROR("Wrong phys addr received.", strerror(errno));
+		}
+	      else
+		{
+		  /* Put the data in the buf from the shared memory area. */
+		  for ( int i = 0; i<(int)len; i++ )
+		    {
+		      buf[i] = ((uint8_t *)udmabuf)[i];
+		    }
+		}
 	    }
-
-	  /* Push the newly received data to the queue */
-	  for ( int i = 0; i<rpmsg_buffer_len; i++ ) {
-	    rpmsg_queue.push(rpmsg_buffer[i]);
-	  }
-
-	  usleep(100);
-
-	attempts--;
-	if ( 0 >= attempts ) return 0;
-      }
-
-      for ( int i = 0; i<(int)len; i++ )
-	{
-	  buf[i] = rpmsg_queue.front();
-	  rpmsg_queue.pop();
 	}
 
       return len;

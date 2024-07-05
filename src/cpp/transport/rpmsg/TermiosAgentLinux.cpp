@@ -419,14 +419,32 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("RPMsg init is successful.", NULL);
 
     /* DMA buffer from User Space */
+    buf_size = 512; /* Ramdom value, should be changed later!! */
     UXR_PRINTF("Setting up the UDMABUF.", NULL);
     if (-1 != (udmabuf_fd  = open("/dev/udmabuf0", O_RDWR)))
       {
-	udmabuf = mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	udmabuf = mmap(NULL, buf_size,
+		       PROT_READ|PROT_WRITE, MAP_SHARED,
+		       udmabuf_fd, 0);
       }
     else
       {
 	UXR_ERROR("Unable to open /dev/udmabuf0.", strerror(errno));
+	return false;
+      }
+
+    /* Check if the received address matches the UDMA physical address.*/
+    if (-1 != (udmabuf_fd_addr  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
+      {
+	if ( 0 >= read(udmabuf_fd_addr, udma_attr, 1024))
+	  {
+	    UXR_ERROR("Unable to read from the fd addr", strerror(errno));
+	  }
+	sscanf((const char*)udma_attr, "%lx", &udma_phys_addr);
+      }
+    else
+      {
+	UXR_ERROR("Unable to retried physical address.", strerror(errno));
 	return false;
       }
     UXR_PRINTF("UDMABUF device open is successful.", NULL);

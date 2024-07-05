@@ -120,8 +120,11 @@ namespace eprosima {
       std::queue<uint8_t> rpmsg_queue;
 
       /* udmabuf specific variables*/
-      int udmabuf_fd;
+      int udmabuf_fd, udmabuf_fd_addr;
       void *udmabuf;
+      size_t buf_size;
+      unsigned char  udma_attr[1024];
+      unsigned long  udma_phys_addr;
 
     };
 
