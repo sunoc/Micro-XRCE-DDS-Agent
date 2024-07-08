@@ -98,8 +98,9 @@ namespace eprosima {
       /* If we need more data, we go and read some */
       while ( len > rpmsg_buffer_len )
 	{
-	  rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
 
+	  /* Reading some rpmsg data; saving the length of the received block. */
+	  rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
 
 	  /* Expecting to get 64bits of data form the Client. */
 	  if ( 8 != rpmsg_buffer_len )
@@ -116,9 +117,14 @@ namespace eprosima {
 	      if ( udma_phys_addr != rpmsg_phys_addr)
 		{
 		  UXR_ERROR("Wrong phys addr received.", strerror(errno));
+		  /* TODO how to manage that case ?? */
 		}
 	      else
 		{
+
+		  /* Test the cases for mismatches between len
+		     and rpmsg_buffer[4] << 32 */
+
 		  /* Put the data in the buf from the shared memory area. */
 		  for ( int i = 0; i<(int)len; i++ )
 		    {
