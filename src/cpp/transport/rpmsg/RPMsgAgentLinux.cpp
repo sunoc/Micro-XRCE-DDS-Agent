@@ -137,84 +137,76 @@ namespace eprosima {
       return len;
     }
 
-    /**************************************************************************
+    /***************************************************************************
      *
-     * This function is the receiving part from the Agent, getting data
-     * from the "read_data function".
-     *
-     *
-     **************************************************************************/
-    bool
-    RPMsgAgent::recv_message(InputPacket<RPMsgEndPoint>& input_packet,
-			     int timeout,
-			     TransportRc& transport_rc)
-    {
-      bool rv = false;
-      uint8_t remote_addr = 0x00;
-      ssize_t bytes_read = 0;
-
-      do
-	{
-	  bytes_read = framing_io_.read_framed_msg( buffer_,
-						    SERVER_BUFFER_SIZE,
-						    remote_addr,
-						    timeout,
-						    transport_rc);
-	}
-      while ((0 == bytes_read) && (0 < timeout));
-
-      if (0 < bytes_read)
-	{
-	  input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
-	  input_packet.source = RPMsgEndPoint(remote_addr);
-	  rv = true;
-
-	  uint32_t raw_client_key;
-	  if (Server<RPMsgEndPoint>::get_client_key(input_packet.source, raw_client_key))
-	    {
-	      UXR_AGENT_LOG_MESSAGE(
-				    UXR_DECORATE_YELLOW("[==>> RMPsg <<==]"),
-				    raw_client_key,
-				    input_packet.message->get_buf(),
-				    input_packet.message->get_len());
-	    }
-	}
-      return rv;
-    }
-
-    /**************************************************************************
-     *
-     * This function sends messages to micro-ROS through DDS.
-     *
+     * The recv_message and send_message are the parts that interract with
+     * the rest of the ROS2 world and thus should be left alone.
      *
      **************************************************************************/
-    bool
-    RPMsgAgent::send_message(OutputPacket<RPMsgEndPoint> output_packet,
-			     TransportRc& transport_rc)
+
+bool SerialAgent::recv_message(
+        InputPacket<SerialEndPoint>& input_packet,
+        int timeout,
+        TransportRc& transport_rc)
+{
+    bool rv = false;
+    uint8_t remote_addr = 0x00;
+    ssize_t bytes_read = 0;
+
+    do
     {
-
-      bool rv = false;
-      ssize_t bytes_written =
-	framing_io_.write_framed_msg(output_packet.message->get_buf(),
-				     output_packet.message->get_len(),
-				     output_packet.destination.get_addr(),
-				     transport_rc);
-      if ((0 < bytes_written)
-	  && (static_cast<size_t>(bytes_written) == output_packet.message->get_len()))
-	{
-	  rv = true;
-
-	  uint32_t raw_client_key;
-	  if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination, raw_client_key))
-	    {
-	      UXR_AGENT_LOG_MESSAGE(UXR_DECORATE_YELLOW("[** <<RPMsg>> **]"),
-				    raw_client_key,
-				    output_packet.message->get_buf(),
-				    output_packet.message->get_len());
-	    }
-	}
-      return rv;
+        bytes_read = framing_io_.read_framed_msg(
+            buffer_, SERVER_BUFFER_SIZE, remote_addr, timeout, transport_rc);
     }
+    while ((0 == bytes_read) && (0 < timeout));
 
-  } // namespace uxr
+    if (0 < bytes_read)
+    {
+        input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
+        input_packet.source = SerialEndPoint(remote_addr);
+        rv = true;
+
+        uint32_t raw_client_key;
+        if (Server<SerialEndPoint>::get_client_key(input_packet.source, raw_client_key))
+        {
+            UXR_AGENT_LOG_MESSAGE(
+                UXR_DECORATE_YELLOW("[==>> SER <<==]"),
+                raw_client_key,
+                input_packet.message->get_buf(),
+                input_packet.message->get_len());
+        }
+    }
+    return rv;
+}
+
+bool SerialAgent::send_message(
+        OutputPacket<SerialEndPoint> output_packet,
+        TransportRc& transport_rc)
+{
+    bool rv = false;
+    ssize_t bytes_written =
+            framing_io_.write_framed_msg(
+                output_packet.message->get_buf(),
+                output_packet.message->get_len(),
+                output_packet.destination.get_addr(),
+                transport_rc);
+    if ((0 < bytes_written) && (
+         static_cast<size_t>(bytes_written) == output_packet.message->get_len()))
+    {
+        rv = true;
+
+        uint32_t raw_client_key;
+        if (Server<SerialEndPoint>::get_client_key(output_packet.destination, raw_client_key))
+        {
+            UXR_AGENT_LOG_MESSAGE(
+                UXR_DECORATE_YELLOW("[** <<SER>> **]"),
+                raw_client_key,
+                output_packet.message->get_buf(),
+                output_packet.message->get_len());
+        }
+    }
+    return rv;
+}
+
+} // namespace uxr
 } // namespace eprosima
