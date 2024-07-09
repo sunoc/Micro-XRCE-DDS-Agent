@@ -344,7 +344,7 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
     int ret;
-    unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
+    char udma_addr_hello[4];
 
     // Init the endpoint structure that exists at the class level
     // eptinfo.name = "rpmsg-openamp-demo-channel";
@@ -408,16 +408,6 @@ bool TermiosRPMsgAgent::init()
 	return false;
       }
 
-    UXR_PRINTF("Sending a first message to the remoteproc to start it.", NULL);
-    ret = ::write(poll_fd_.fd, &hello, 10);
-    if ( 0  >= ret )
-      {
-	UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
-	return false;
-      }
-
-    UXR_PRINTF("RPMsg init is successful.", NULL);
-
     /* DMA buffer from User Space */
     buf_size = 512; /* Ramdom value, should be changed later!! */
     UXR_PRINTF("Setting up the UDMABUF.", NULL);
@@ -448,6 +438,21 @@ bool TermiosRPMsgAgent::init()
 	return false;
       }
     UXR_PRINTF("UDMABUF device open is successful.", NULL);
+
+    UXR_PRINTF("Sending a first UDMA addr message to the remoteproc to start it.", udma_phys_addr);
+
+    for (int i = 0; i<4; i++)
+	udma_addr_hello[i] = (udma_phys_addr >> i*8) & 0x00FF;
+
+    ret = ::write(poll_fd_.fd, &udma_addr_hello, 4);
+    if ( 0  >= ret )
+      {
+	UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
+	return false;
+      }
+
+    UXR_PRINTF("RPMsg init is successful.", NULL);
+
     return true;
 }
 

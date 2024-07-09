@@ -43,31 +43,44 @@ namespace eprosima {
 			   size_t len,
 			   TransportRc& transport_rc)
     {
+      // size_t rv = 0;
+      // ssize_t bytes_written;
+      // unsigned long long udmabuf_payload;
+
+
+      // /* Put the data in the dma buf. */
+      // for (size_t i = 0; i<len; i++)
+      // 	{
+      // 	  ((uint8_t *)udmabuf)[i] = buf[i];
+      // 	}
+
+      // /* Put the length and physical addr in the rpmsg buf. */
+      // udmabuf_payload = udma_phys_addr + (len << 32);
+      // bytes_written = ::write(poll_fd_.fd, &udmabuf_payload, sizeof(udmabuf_payload));
+
+      // /* Test if anything was sent. */
+      // if (0 < bytes_written)
+      // 	{
+      //     rv = size_t(bytes_written);
+      // 	}
+      // else
+      // 	{
+      // 	  UXR_ERROR("sending data failed with errno", strerror(errno));
+      //     transport_rc = TransportRc::server_error;
+      // 	}
+      // return rv;
+      UXR_PRINTF("write_data", NULL);
       size_t rv = 0;
-      ssize_t bytes_written;
-      unsigned long long udmabuf_payload;
-
-
-      /* Put the data in the dma buf. */
-      for (size_t i = 0; i<len; i++)
-	{
-	  ((uint8_t *)udmabuf)[i] = buf[i];
-	}
-
-      /* Put the length and physical addr in the rpmsg buf. */
-      udmabuf_payload = udma_phys_addr + (len << 32);
-      bytes_written = ::write(poll_fd_.fd, &udmabuf_payload, sizeof(udmabuf_payload));
-
-      /* Test if anything was sent. */
+      ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
       if (0 < bytes_written)
-	{
+      {
           rv = size_t(bytes_written);
-	}
+      }
       else
-	{
+      {
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
-	}
+      }
       return rv;
     }
 
@@ -84,7 +97,7 @@ namespace eprosima {
 			  TransportRc& transport_rc)
     {
       size_t rpmsg_buffer_len = 0;
-      unsigned long rpmsg_phys_addr;
+      size_t rpmsg_phys_addr;
 
 
       if ( 0 >= timeout )
@@ -94,47 +107,54 @@ namespace eprosima {
 	  return errno;
 	}
 
+      /* Reading some rpmsg data; saving the length of the received block. */
+      rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
 
-      /* If we need more data, we go and read some */
-      while ( len > rpmsg_buffer_len )
+      if ( 0 >= rpmsg_buffer_len )
 	{
 
-	  /* Reading some rpmsg data; saving the length of the received block. */
-	  rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
-
-	  /* Expecting to get 64bits of data form the Client. */
-	  if ( 8 != rpmsg_buffer_len )
+	  rpmsg_phys_addr = rpmsg_buffer[0]
+	    + (rpmsg_buffer[1] << 8)
+	    + (rpmsg_buffer[2] << 16)
+	    + (rpmsg_buffer[3] << 24);
+	  if ( udma_phys_addr != rpmsg_phys_addr)
 	    {
-	      UXR_ERROR("Wrong length received for a UDMABUF.", strerror(errno));
+	      UXR_ERROR("Wrong phys addr received.", strerror(errno));
+	      UXR_ERROR("Expected", udma_phys_addr);
+	      UXR_ERROR("Got", rpmsg_phys_addr);
+
+	      return 0;
+
 	    }
 	  else
 	    {
 
-	      rpmsg_phys_addr = rpmsg_buffer[0]
-		+ (rpmsg_buffer[1] << 8)
-		+ (rpmsg_buffer[2] << 16)
-		+ (rpmsg_buffer[3] << 24);
-	      if ( udma_phys_addr != rpmsg_phys_addr)
+	      /* Test the cases for mismatches between len
+		 and rpmsg_buffer[4]*/
+	      if ( 0 >= rpmsg_buffer[4] )
 		{
-		  UXR_ERROR("Wrong phys addr received.", strerror(errno));
-		  /* TODO how to manage that case ?? */
+		  UXR_ERROR("Received len of zero.", strerror(errno));
+		  return 0;
 		}
 	      else
 		{
-
-		  /* Test the cases for mismatches between len
-		     and rpmsg_buffer[4] << 32 */
-
 		  /* Put the data in the buf from the shared memory area. */
-		  for ( int i = 0; i<(int)len; i++ )
+		  UXR_PRINTF("Got some data, y'all", NULL);
+		  for ( int i = 0; i<(int)rpmsg_buffer[4]; i++ )
 		    {
 		      buf[i] = ((uint8_t *)udmabuf)[i];
+		      UXR_PRINTF("buf", buf[i] );
 		    }
 		}
 	    }
 	}
+      else
+	{
+	  //UXR_ERROR("Unable to get data from RPMsg.", strerror(errno));
+	  return 0;
+	}
 
-      return len;
+      return rpmsg_buffer[4];
     }
 
     /***************************************************************************
@@ -144,8 +164,8 @@ namespace eprosima {
      *
      **************************************************************************/
 
-bool SerialAgent::recv_message(
-        InputPacket<SerialEndPoint>& input_packet,
+bool RPMsgAgent::recv_message(
+        InputPacket<RPMsgEndPoint>& input_packet,
         int timeout,
         TransportRc& transport_rc)
 {
@@ -163,11 +183,11 @@ bool SerialAgent::recv_message(
     if (0 < bytes_read)
     {
         input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
-        input_packet.source = SerialEndPoint(remote_addr);
+        input_packet.source = RPMsgEndPoint(remote_addr);
         rv = true;
 
         uint32_t raw_client_key;
-        if (Server<SerialEndPoint>::get_client_key(input_packet.source, raw_client_key))
+        if (Server<RPMsgEndPoint>::get_client_key(input_packet.source, raw_client_key))
         {
             UXR_AGENT_LOG_MESSAGE(
                 UXR_DECORATE_YELLOW("[==>> SER <<==]"),
@@ -179,8 +199,8 @@ bool SerialAgent::recv_message(
     return rv;
 }
 
-bool SerialAgent::send_message(
-        OutputPacket<SerialEndPoint> output_packet,
+bool RPMsgAgent::send_message(
+        OutputPacket<RPMsgEndPoint> output_packet,
         TransportRc& transport_rc)
 {
     bool rv = false;
@@ -196,7 +216,7 @@ bool SerialAgent::send_message(
         rv = true;
 
         uint32_t raw_client_key;
-        if (Server<SerialEndPoint>::get_client_key(output_packet.destination, raw_client_key))
+        if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination, raw_client_key))
         {
             UXR_AGENT_LOG_MESSAGE(
                 UXR_DECORATE_YELLOW("[** <<SER>> **]"),
