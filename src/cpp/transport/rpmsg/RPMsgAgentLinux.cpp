@@ -96,65 +96,63 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-      size_t rpmsg_buffer_len = 0;
-      size_t rpmsg_phys_addr;
+      int rpmsg_buffer_len = 0;
+      int attempts = 10;
 
+      /* Init the UDMABUF related variables. */
+      size_t rpmsg_phys_addr = 0;
+      size_t rpmsg_data_len =  0;
+      int read_data_len = 0;
 
-      if ( 0 >= timeout )
+      if ( 0 >= timeout ){
+	UXR_ERROR("Timeout: ", strerror(errno));
+	transport_rc = TransportRc::timeout_error;
+	return errno;
+      }
+
+      /* If we need more data, we go and read some */
+      while ( 8 > rpmsg_queue.size() ) {
+	rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
+
+	/* Push the newly received data to the queue */
+	/* WARNING: for unknown reason, the value of rpmsg_buffer_len
+	 * should NOT be checked before this point !!
+	 * I can be used in the for loop correctly though. */
+	for ( int i = 0; i<rpmsg_buffer_len; i++ )
+	  rpmsg_queue.push(rpmsg_buffer[i]);
+
+	usleep(10);
+
+	attempts--;
+	if ( 0 >= attempts ) return 0;
+      }
+
+      /* Getting the physical address back. */
+      for ( int i = 0; i<4; i++ )
 	{
-	  UXR_ERROR("Timeout: ", strerror(errno));
-	  transport_rc = TransportRc::timeout_error;
-	  return errno;
+	  rpmsg_phys_addr += (rpmsg_queue.front() << i*8);
+	  rpmsg_queue.pop();
 	}
 
-      /* Reading some rpmsg data; saving the length of the received block. */
-      rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
+      /* Getting the data length. */
+      rpmsg_data_len = rpmsg_queue.front();
+      rpmsg_queue.pop();
 
-      if ( 0 >= rpmsg_buffer_len )
+      UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
+      UXR_PRINTF("rpmsg_data_len", rpmsg_data_len);
+
+      if ( rpmsg_phys_addr == udma_phys_addr )
 	{
+	  read_data_len = read(udmabuf_fd, buf, rpmsg_data_len);
+	  for (size_t i=0; i<read_data_len; i++)
+	       UXR_PRINTF("buf", buf[i]);
 
-	  rpmsg_phys_addr = rpmsg_buffer[0]
-	    + (rpmsg_buffer[1] << 8)
-	    + (rpmsg_buffer[2] << 16)
-	    + (rpmsg_buffer[3] << 24);
-	  if ( udma_phys_addr != rpmsg_phys_addr)
-	    {
-	      UXR_ERROR("Wrong phys addr received.", strerror(errno));
-	      UXR_ERROR("Expected", udma_phys_addr);
-	      UXR_ERROR("Got", rpmsg_phys_addr);
-
-	      return 0;
-
-	    }
-	  else
-	    {
-
-	      /* Test the cases for mismatches between len
-		 and rpmsg_buffer[4]*/
-	      if ( 0 >= rpmsg_buffer[4] )
-		{
-		  UXR_ERROR("Received len of zero.", strerror(errno));
-		  return 0;
-		}
-	      else
-		{
-		  /* Put the data in the buf from the shared memory area. */
-		  UXR_PRINTF("Got some data, y'all", NULL);
-		  for ( int i = 0; i<(int)rpmsg_buffer[4]; i++ )
-		    {
-		      buf[i] = ((uint8_t *)udmabuf)[i];
-		      UXR_PRINTF("buf", buf[i] );
-		    }
-		}
-	    }
+	   return rpmsg_data_len;
 	}
       else
 	{
-	  //UXR_ERROR("Unable to get data from RPMsg.", strerror(errno));
 	  return 0;
 	}
-
-      return rpmsg_buffer[4];
     }
 
     /***************************************************************************

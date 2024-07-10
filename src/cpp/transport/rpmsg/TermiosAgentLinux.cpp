@@ -408,14 +408,15 @@ bool TermiosRPMsgAgent::init()
 	return false;
       }
 
-    /* DMA buffer from User Space */
+    /**************************************************************************/
+    UXR_PRINTF("DMA buffer from User Space", NULL);
     buf_size = 512; /* Ramdom value, should be changed later!! */
     UXR_PRINTF("Setting up the UDMABUF.", NULL);
     if (-1 != (udmabuf_fd  = open("/dev/udmabuf0", O_RDWR)))
       {
-	udmabuf = mmap(NULL, buf_size,
-		       PROT_READ|PROT_WRITE, MAP_SHARED,
-		       udmabuf_fd, 0);
+	// udmabuf = mmap(NULL, buf_size,
+	// 	       PROT_READ|PROT_WRITE, MAP_SHARED,
+	// 	       udmabuf_fd, 0);
       }
     else
       {
@@ -423,7 +424,8 @@ bool TermiosRPMsgAgent::init()
 	return false;
       }
 
-    /* Check if the received address matches the UDMA physical address.*/
+    /**************************************************************************/
+    UXR_PRINTF("Check if the received address matches the UDMA physical address.", NULL);
     if (-1 != (udmabuf_fd_addr  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
       {
 	if ( 0 >= read(udmabuf_fd_addr, udma_attr, 1024))
@@ -439,8 +441,8 @@ bool TermiosRPMsgAgent::init()
       }
     UXR_PRINTF("UDMABUF device open is successful.", NULL);
 
+    /**************************************************************************/
     UXR_PRINTF("Sending a first UDMA addr message to the remoteproc to start it.", udma_phys_addr);
-
     for (int i = 0; i<4; i++)
 	udma_addr_hello[i] = (udma_phys_addr >> i*8) & 0x00FF;
 
