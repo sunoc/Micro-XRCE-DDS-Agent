@@ -102,7 +102,9 @@ namespace eprosima {
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
       size_t rpmsg_data_len =  0;
-      int read_data_len = 0;
+      //int read_data_len = 0;
+
+      //const char * read_buf;
 
       if ( 0 >= timeout ){
 	UXR_ERROR("Timeout: ", strerror(errno));
@@ -140,14 +142,31 @@ namespace eprosima {
 
       UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
       UXR_PRINTF("rpmsg_data_len", rpmsg_data_len);
+      UXR_PRINTF("expected len", len);
 
       if ( rpmsg_phys_addr == udma_phys_addr )
 	{
-	  read_data_len = read(udmabuf_fd, buf, rpmsg_data_len);
-	  for (size_t i=0; i<read_data_len; i++)
-	       UXR_PRINTF("buf", buf[i]);
+	  //read_data_len = read(udmabuf_fd.fd, (void *)read_buf, rpmsg_data_len);
+	  //	  sscanf((const char*)read_buf, "%c", buf);
+	  //UXR_PRINTF("read_buf:", read_buf);
+	  // UXR_PRINTF("read_buf[1]:", read_buf[1]);
+	  // UXR_PRINTF("*read_buf:", *read_buf);
+	  // UXR_PRINTF("&read_buf:", &read_buf);
 
-	   return rpmsg_data_len;
+	  UXR_PRINTF("udmabuf:", udmabuf);
+	  //UXR_PRINTF("udmabuf[0]:", ((uint8_t *)udmabuf)[0]);
+	  //UXR_PRINTF("&udmabuf:", &udmabuf);
+	  UXR_PRINTF("*udmabuf:", *((uint8_t *)udmabuf));
+
+	  memcpy(buf, udmabuf, rpmsg_data_len);
+
+	  for ( size_t i = 0; i<len; i++)
+	    {
+	      //x	      buf[i] = ((uint8_t *)udmabuf)[i];
+	      UXR_PRINTF("buf", buf[i]);
+	    }
+
+	   return len;
 	}
       else
 	{

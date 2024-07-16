@@ -409,30 +409,42 @@ bool TermiosRPMsgAgent::init()
       }
 
     /**************************************************************************/
-    UXR_PRINTF("DMA buffer from User Space", NULL);
-    buf_size = 512; /* Ramdom value, should be changed later!! */
-    UXR_PRINTF("Setting up the UDMABUF.", NULL);
-    if (-1 != (udmabuf_fd  = open("/dev/udmabuf0", O_RDWR)))
+    buf_size = 1024; /* Ramdom value, should be changed later!! */
+    UXR_PRINTF("Setting up the UDMABUF.", buf_size);
+    if (-1 != (udmabuf_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
       {
-	// udmabuf = mmap(NULL, buf_size,
-	// 	       PROT_READ|PROT_WRITE, MAP_SHARED,
-	// 	       udmabuf_fd, 0);
+	udmabuf = mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf_fd.fd, 0);
+	if ( -1 == *((int *)udmabuf) )
+	  UXR_ERROR("Failde to mmap udmabuf0", strerror(errno));
+
+	//close(udmabuf_fd.fd);
       }
     else
       {
 	UXR_ERROR("Unable to open /dev/udmabuf0.", strerror(errno));
 	return false;
       }
+    UXR_PRINTF("udmabuf_fd.fd:", udmabuf_fd.fd);
+    UXR_PRINTF("udmabuf:", udmabuf);
+
+    char  attr[1024];
+    unsigned long  sync_mode = 2;
+    int fd;
+    if ((fd  = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)) != -1) {
+      sprintf(attr, "%ld", sync_mode);
+      ::write(fd, attr, strlen(attr));
+      close(fd);
+    }
 
     /**************************************************************************/
     UXR_PRINTF("Check if the received address matches the UDMA physical address.", NULL);
-    if (-1 != (udmabuf_fd_addr  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
+    if (-1 != (udmabuf_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
       {
-	if ( 0 >= read(udmabuf_fd_addr, udma_attr, 1024))
+	if ( 0 >= read(udmabuf_fd_addr.fd, udma_attr, 1024))
 	  {
 	    UXR_ERROR("Unable to read from the fd addr", strerror(errno));
 	  }
-	sscanf((const char*)udma_attr, "%lx", &udma_phys_addr);
+	sscanf((const char*)udma_attr, "0x%lx", &udma_phys_addr);
       }
     else
       {
