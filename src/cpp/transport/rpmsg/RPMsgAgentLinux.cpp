@@ -43,45 +43,56 @@ namespace eprosima {
 			   size_t len,
 			   TransportRc& transport_rc)
     {
-      // size_t rv = 0;
-      // ssize_t bytes_written;
-      // unsigned long long udmabuf_payload;
-
-
-      // /* Put the data in the dma buf. */
-      // for (size_t i = 0; i<len; i++)
-      // 	{
-      // 	  ((uint8_t *)udmabuf)[i] = buf[i];
-      // 	}
-
-      // /* Put the length and physical addr in the rpmsg buf. */
-      // udmabuf_payload = udma_phys_addr + (len << 32);
-      // bytes_written = ::write(poll_fd_.fd, &udmabuf_payload, sizeof(udmabuf_payload));
-
-      // /* Test if anything was sent. */
-      // if (0 < bytes_written)
-      // 	{
-      //     rv = size_t(bytes_written);
-      // 	}
-      // else
-      // 	{
-      // 	  UXR_ERROR("sending data failed with errno", strerror(errno));
-      //     transport_rc = TransportRc::server_error;
-      // 	}
-      // return rv;
-      UXR_PRINTF("write_data", NULL);
+#ifdef GPIO_MONITORING
+      /* BLUE: turns on PIN 1 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data | 0x1;
+#endif
       size_t rv = 0;
-      ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+      ssize_t bytes_written;
+      unsigned long long udmabuf_payload;
+
+      /* Reset index for the reading method. */
+      read_index = 0;
+
+      /* Put the data in the dma buf. */
+      for (size_t i = 0; i<len; i++)
+	{
+	  ((uint8_t *)udmabuf)[i] = buf[i];
+	}
+
+      UXR_PRINTF("sending data", len);
+      /* Put the length and physical addr in the rpmsg buf. */
+      udmabuf_payload = udma_phys_addr + (len << 32);
+      bytes_written = ::write(poll_fd_.fd, &udmabuf_payload, sizeof(udmabuf_payload));
+
+      /* Test if anything was sent. */
       if (0 < bytes_written)
-      {
+	{
           rv = size_t(bytes_written);
-      }
+	}
       else
-      {
+	{
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
-      }
+	}
+#ifdef GPIO_MONITORING
+      /* BLUE: turns off PIN 1 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
       return rv;
+
+      // size_t rv = 0;
+      // ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+      // if (0 < bytes_written)
+      // {
+      //     rv = size_t(bytes_written);
+      // }
+      // else
+      // {
+      // 	  UXR_ERROR("sending data failed with errno", strerror(errno));
+      //     transport_rc = TransportRc::server_error;
+      // }
+      // return rv;
     }
 
     /**************************************************************************
@@ -101,10 +112,7 @@ namespace eprosima {
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
-      size_t rpmsg_data_len =  0;
-      //int read_data_len = 0;
-
-      //const char * read_buf;
+      ssize_t bytes_read = 0;
 
       if ( 0 >= timeout ){
 	UXR_ERROR("Timeout: ", strerror(errno));
@@ -123,7 +131,7 @@ namespace eprosima {
 	for ( int i = 0; i<rpmsg_buffer_len; i++ )
 	  rpmsg_queue.push(rpmsg_buffer[i]);
 
-	usleep(10);
+	usleep(200);
 
 	attempts--;
 	if ( 0 >= attempts ) return 0;
@@ -137,39 +145,45 @@ namespace eprosima {
 	}
 
       /* Getting the data length. */
-      rpmsg_data_len = rpmsg_queue.front();
+      bytes_read = rpmsg_queue.front();
       rpmsg_queue.pop();
 
+      /* Emptying the rest of the queue */
+      for ( int i = 0; i<3; i++ )
+	  rpmsg_queue.pop();
+
       UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
-      UXR_PRINTF("rpmsg_data_len", rpmsg_data_len);
+      UXR_PRINTF("receiving data", bytes_read);
       UXR_PRINTF("expected len", len);
+
+      if ( (ssize_t)len > bytes_read )
+	UXR_ERROR("Didn't received enough data...", strerror(errno));
 
       if ( rpmsg_phys_addr == udma_phys_addr )
 	{
-	  //read_data_len = read(udmabuf_fd.fd, (void *)read_buf, rpmsg_data_len);
-	  //	  sscanf((const char*)read_buf, "%c", buf);
-	  //UXR_PRINTF("read_buf:", read_buf);
-	  // UXR_PRINTF("read_buf[1]:", read_buf[1]);
-	  // UXR_PRINTF("*read_buf:", *read_buf);
-	  // UXR_PRINTF("&read_buf:", &read_buf);
-
-	  UXR_PRINTF("udmabuf:", udmabuf);
-	  //UXR_PRINTF("udmabuf[0]:", ((uint8_t *)udmabuf)[0]);
-	  //UXR_PRINTF("&udmabuf:", &udmabuf);
-	  UXR_PRINTF("*udmabuf:", *((uint8_t *)udmabuf));
-
-	  memcpy(buf, udmabuf, rpmsg_data_len);
-
-	  for ( size_t i = 0; i<len; i++)
+#ifdef GPIO_MONITORING
+	  /* GREEN: turns on PIN 2 on GPIO channel 2 */
+	  gpio[2].data = gpio[2].data | 0x2;
+#endif
+	  printf("read_index: %ld\r\n", read_index);
+	  for ( ssize_t i = 0; i<bytes_read; i++)
 	    {
-	      //x	      buf[i] = ((uint8_t *)udmabuf)[i];
-	      UXR_PRINTF("buf", buf[i]);
+	      buf[i] = ((uint8_t *)udmabuf + read_index)[i];
+	      printf("%ld: 0x%x\r\n", i, buf[i]);
+	      //UXR_PRINTF("buf", buf[i]);
 	    }
 
-	   return len;
+	  UXR_PRINTF("returning bytes_read", bytes_read);
+	  read_index += bytes_read;
+#ifdef GPIO_MONITORING
+	  /* GREEN: turns off PIN 2 on GPIO channel 2 */
+	  gpio[2].data = gpio[2].data & ~(0x2);
+#endif
+	  return bytes_read;
 	}
       else
 	{
+	  UXR_ERROR("Missmatched phys addr ", strerror(errno));
 	  return 0;
 	}
     }
@@ -199,6 +213,7 @@ bool RPMsgAgent::recv_message(
 
     if (0 < bytes_read)
     {
+        UXR_PRINTF("recevied some stuff", bytes_read);
         input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
         input_packet.source = RPMsgEndPoint(remote_addr);
         rv = true;
@@ -230,6 +245,7 @@ bool RPMsgAgent::send_message(
     if ((0 < bytes_written) && (
          static_cast<size_t>(bytes_written) == output_packet.message->get_len()))
     {
+        UXR_PRINTF("try and send some stuff", bytes_written);
         rv = true;
 
         uint32_t raw_client_key;

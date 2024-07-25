@@ -346,6 +346,11 @@ bool TermiosRPMsgAgent::init()
     int ret;
     char udma_addr_hello[4];
 
+    /* udmabuf sync_mode related vars */
+    char  attr[1024];
+    unsigned long  sync_mode = 1;
+    int fd;
+
     // Init the endpoint structure that exists at the class level
     // eptinfo.name = "rpmsg-openamp-demo-channel";
     // eptinfo.src = 0;
@@ -413,11 +418,11 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("Setting up the UDMABUF.", buf_size);
     if (-1 != (udmabuf_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
       {
-	udmabuf = mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf_fd.fd, 0);
+	udmabuf = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf_fd.fd, 0);
 	if ( -1 == *((int *)udmabuf) )
 	  UXR_ERROR("Failde to mmap udmabuf0", strerror(errno));
 
-	//close(udmabuf_fd.fd);
+	close(udmabuf_fd.fd);
       }
     else
       {
@@ -427,13 +432,12 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("udmabuf_fd.fd:", udmabuf_fd.fd);
     UXR_PRINTF("udmabuf:", udmabuf);
 
-    char  attr[1024];
-    unsigned long  sync_mode = 2;
-    int fd;
+
     if ((fd  = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)) != -1) {
-      sprintf(attr, "%ld", sync_mode);
-      ::write(fd, attr, strlen(attr));
-      close(fd);
+        sprintf(attr, "%ld", sync_mode);
+	if (-1 == ::write(fd, attr, strlen(attr)))
+	  UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
+        close(fd);
     }
 
     /**************************************************************************/
@@ -467,6 +471,26 @@ bool TermiosRPMsgAgent::init()
 
     UXR_PRINTF("RPMsg init is successful.", NULL);
 
+#ifdef GPIO_MONITORING
+    UXR_PRINTF("GPIO being init.", NULL);
+    GPIO_fd = open("/dev/mem", O_RDWR | O_SYNC);
+    if (GPIO_fd <= 0)
+      {
+	std::cout << "open error" << std::endl;
+	return -1;
+      }
+
+    gpio = static_cast<GPIO_t*>(mmap(nullptr, gpio_size, PROT_READ|PROT_WRITE, MAP_SHARED, GPIO_fd, gpio_base));
+    if (!gpio)
+      {
+	std::cout << "mmap error" << std::endl;
+	close(GPIO_fd);
+	return -1;
+      }
+
+    UXR_PRINTF("GPIO init is successful.", NULL);
+#endif
+
     return true;
 }
 
@@ -495,7 +519,6 @@ bool TermiosRPMsgAgent::fini()
 	  return false;
 	}
     }
-
   UXR_PRINTF("Everything was freed and close cleanly. Returning true.", NULL);
   return true;
 }

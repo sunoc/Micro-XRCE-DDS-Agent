@@ -30,6 +30,19 @@
 #include <queue>
 #include <sys/mman.h>
 
+#include <iostream>
+#include <sys/stat.h>
+
+#define GPIO_MONITORING
+
+#ifdef GPIO_MONITORING
+/* GPIO */
+#define NUM_GPIO 4
+
+#define gpio_base 0xa0000000
+#define gpio_size (sizeof(GPIO_t) * NUM_GPIO)
+#endif
+
 /* RPMsg max payload size values*/
 #define RPMSG_HEADER_LEN        16
 #define MAX_RPMSG_BUFF_SIZE     (512 - RPMSG_HEADER_LEN)
@@ -121,10 +134,20 @@ namespace eprosima {
 
       /* udmabuf specific variables*/
       struct pollfd udmabuf_fd, udmabuf_fd_addr;
-      void *udmabuf;
-      size_t buf_size;
+      unsigned char *udmabuf;
+      size_t buf_size, read_index;
       unsigned char  udma_attr[1024];
       unsigned long  udma_phys_addr;
+
+#ifdef GPIO_MONITORING
+      /* GPIO */
+      struct alignas(0x200) GPIO_t {
+	uint32_t	data;
+      };
+
+      int GPIO_fd;
+      GPIO_t* gpio;
+#endif
 
     };
 
