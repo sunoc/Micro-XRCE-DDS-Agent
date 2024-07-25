@@ -135,9 +135,12 @@ namespace eprosima {
       /* udmabuf specific variables*/
       struct pollfd udmabuf_fd, udmabuf_fd_addr;
       unsigned char *udmabuf;
-      size_t buf_size; //, read_index;
+      size_t buf_size;
       unsigned char  udma_attr[1024];
       unsigned long  udma_phys_addr;
+
+      // buffer style pointer for dmabuf
+      ssize_t udma_head, udma_tail;
 
 #ifdef GPIO_MONITORING
       /* GPIO */

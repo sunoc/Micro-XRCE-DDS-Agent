@@ -52,7 +52,8 @@ namespace eprosima {
       unsigned long long udmabuf_payload;
 
       /* Reset index for the reading method. */
-      //read_index = 0;
+      udma_head = 0;
+      udma_tail = 0;
 
       /* Put the data in the dma buf. */
       for (size_t i = 0; i<len; i++)
@@ -107,8 +108,11 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
+      UXR_PRINTF("expects len", len);
+      UXR_PRINTF("udma_head", udma_head);
+      UXR_PRINTF("udma_tail", udma_tail);
       int rpmsg_buffer_len = 0;
-      int attempts = 10;
+      int attempts = 1000;
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
@@ -120,73 +124,82 @@ namespace eprosima {
 	return errno;
       }
 
-      /* If we need more data, we go and read some */
-      while ( 8 > rpmsg_queue.size() ) {
-	rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
-
-	/* Push the newly received data to the queue */
-	/* WARNING: for unknown reason, the value of rpmsg_buffer_len
-	 * should NOT be checked before this point !!
-	 * I can be used in the for loop correctly though. */
-	for ( int i = 0; i<rpmsg_buffer_len; i++ )
-	  rpmsg_queue.push(rpmsg_buffer[i]);
-
-	usleep(200);
-
-	attempts--;
-	if ( 0 >= attempts ) return 0;
-      }
-
-      /* Getting the physical address back. */
-      for ( int i = 0; i<4; i++ )
+      /* =======================================================================
+	 This is the case where not enough data is in the buffer. */
+      if ( (ssize_t)len > (udma_head - udma_tail) )
 	{
-	  rpmsg_phys_addr += (rpmsg_queue.front() << i*8);
-	  rpmsg_queue.pop();
-	}
+	  /* If we need more data, we go and read some */
+	  while ( 8 > rpmsg_queue.size() ) {
+	    rpmsg_buffer_len = read(poll_fd_.fd,
+				    rpmsg_buffer,
+				    MAX_RPMSG_BUFF_SIZE);
 
-      /* Getting the data length. */
-      bytes_read = rpmsg_queue.front();
-      rpmsg_queue.pop();
+	    /* Push the newly received data to the queue */
+	    /* WARNING: for unknown reason, the value of rpmsg_buffer_len
+	     * should NOT be checked before this point !!
+	     * I can be used in the for loop correctly though. */
+	    for ( int i = 0; i<rpmsg_buffer_len; i++ )
+	      rpmsg_queue.push(rpmsg_buffer[i]);
 
-      /* Emptying the rest of the queue */
-      for ( int i = 0; i<3; i++ )
-	  rpmsg_queue.pop();
+	    usleep(200);
 
-      UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
-      UXR_PRINTF("receiving data", bytes_read);
-      UXR_PRINTF("expected len", len);
+	    attempts--;
+	    if ( 0 >= attempts ) return 0;
+	  }
 
-      if ( (ssize_t)len > bytes_read )
-	UXR_ERROR("Didn't received enough data...", strerror(errno));
-
-      if ( rpmsg_phys_addr == udma_phys_addr )
-	{
-#ifdef GPIO_MONITORING
-	  /* GREEN: turns on PIN 2 on GPIO channel 2 */
-	  gpio[2].data = gpio[2].data | 0x2;
-#endif
-	  //printf("read_index: %ld\r\n", read_index);
-	  for ( int i = 0; i<(int)len; i++ )
+	  /* Getting the physical address back. */
+	  for ( int i = 0; i<4; i++ )
 	    {
-	      //buf[i] = ((uint8_t *)udmabuf + read_index)[i];
-	      buf[i] = ((uint8_t *)udmabuf)[i];
-	      printf("%d: 0x%x\r\n", i, buf[i]);
-	      //UXR_PRINTF("buf", buf[i]);
+	      rpmsg_phys_addr += (rpmsg_queue.front() << i*8);
+	      rpmsg_queue.pop();
 	    }
 
-	  UXR_PRINTF("returning bytes_read", bytes_read);
-	  //read_index += bytes_read;
+	  /* Getting the data length. */
+	  bytes_read = rpmsg_queue.front();
+	  rpmsg_queue.pop();
+
+	  /* Emptying the rest of the queue */
+	  for ( int i = 0; i<3; i++ )
+	    rpmsg_queue.pop();
+
+	  if ( (ssize_t)len > bytes_read )
+	    UXR_ERROR("Didn't received enough data...", strerror(errno));
+
+	  if ( rpmsg_phys_addr != udma_phys_addr )
+	    UXR_ERROR("Missmatched received phys addr...", strerror(errno));
+
+	}
+
+      /* =======================================================================
+	 Actually reading datam from udmabuf and returning it */
+      UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
+      UXR_PRINTF("receiving data", bytes_read);
+
+      /* received data move the head value of the buf. */
+      udma_head += bytes_read;
+
 #ifdef GPIO_MONITORING
-	  /* GREEN: turns off PIN 2 on GPIO channel 2 */
-	  gpio[2].data = gpio[2].data & ~(0x2);
+      /* GREEN: turns on PIN 2 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  return len;
-	}
-      else
+      //printf("read_index: %ld\r\n", read_index);
+      for ( int i = 0; i<(int)len; i++ )
 	{
-	  UXR_ERROR("Missmatched phys addr ", strerror(errno));
-	  return 0;
+	  buf[i] = ((uint8_t *)udmabuf + udma_tail)[i];
+	  //buf[i] = ((uint8_t *)udmabuf)[i];
+	  printf("%d: 0x%x\r\n", i, buf[i]);
+	  //UXR_PRINTF("buf", buf[i]);
 	}
+
+      UXR_PRINTF("returning len", len);
+
+      /* Len bytes were taken. Updating tail. */
+      udma_tail += len;
+#ifdef GPIO_MONITORING
+      /* GREEN: turns off PIN 2 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data & ~(0x2);
+#endif
+      return len;
     }
 
     /***************************************************************************
