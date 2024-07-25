@@ -52,7 +52,7 @@ namespace eprosima {
       unsigned long long udmabuf_payload;
 
       /* Reset index for the reading method. */
-      read_index = 0;
+      //read_index = 0;
 
       /* Put the data in the dma buf. */
       for (size_t i = 0; i<len; i++)
@@ -165,21 +165,22 @@ namespace eprosima {
 	  /* GREEN: turns on PIN 2 on GPIO channel 2 */
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  printf("read_index: %ld\r\n", read_index);
-	  for ( ssize_t i = 0; i<bytes_read; i++)
+	  //printf("read_index: %ld\r\n", read_index);
+	  for ( int i = 0; i<(int)len; i++ )
 	    {
-	      buf[i] = ((uint8_t *)udmabuf + read_index)[i];
-	      printf("%ld: 0x%x\r\n", i, buf[i]);
+	      //buf[i] = ((uint8_t *)udmabuf + read_index)[i];
+	      buf[i] = ((uint8_t *)udmabuf)[i];
+	      printf("%d: 0x%x\r\n", i, buf[i]);
 	      //UXR_PRINTF("buf", buf[i]);
 	    }
 
 	  UXR_PRINTF("returning bytes_read", bytes_read);
-	  read_index += bytes_read;
+	  //read_index += bytes_read;
 #ifdef GPIO_MONITORING
 	  /* GREEN: turns off PIN 2 on GPIO channel 2 */
 	  gpio[2].data = gpio[2].data & ~(0x2);
 #endif
-	  return bytes_read;
+	  return len;
 	}
       else
 	{
