@@ -57,20 +57,17 @@ namespace eprosima {
 
       /* Put the data in the dma buf. */
       for (size_t i = 0; i<len; i++)
-	{
 	  ((uint8_t *)udmabuf)[i] = buf[i];
-	}
 
       UXR_PRINTF("sending data", len);
       /* Put the length and physical addr in the rpmsg buf. */
       udmabuf_payload = udma_phys_addr + (len << 32);
+      UXR_PRINTF("payload size", sizeof(udmabuf_payload));
       bytes_written = ::write(poll_fd_.fd, &udmabuf_payload, sizeof(udmabuf_payload));
 
       /* Test if anything was sent. */
       if (0 < bytes_written)
-	{
           rv = size_t(bytes_written);
-	}
       else
 	{
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
@@ -81,19 +78,6 @@ namespace eprosima {
       gpio[3].data = gpio[3].data & ~(0x1);
 #endif
       return rv;
-
-      // size_t rv = 0;
-      // ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
-      // if (0 < bytes_written)
-      // {
-      //     rv = size_t(bytes_written);
-      // }
-      // else
-      // {
-      // 	  UXR_ERROR("sending data failed with errno", strerror(errno));
-      //     transport_rc = TransportRc::server_error;
-      // }
-      // return rv;
     }
 
     /**************************************************************************
@@ -108,11 +92,15 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-      UXR_PRINTF("expects len", len);
-      UXR_PRINTF("udma_head", udma_head);
-      UXR_PRINTF("udma_tail", udma_tail);
+#ifdef GPIO_MONITORING
+      /* GREEN: turns on PIN 2 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data | 0x2;
+#endif
+      // UXR_PRINTF("expects len", len);
+      // UXR_PRINTF("udma_head", udma_head);
+      // UXR_PRINTF("udma_tail", udma_tail);
       int rpmsg_buffer_len = 0;
-      int attempts = 1000;
+      int attempts = 2000;
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
@@ -129,23 +117,24 @@ namespace eprosima {
       if ( (ssize_t)len > (udma_head - udma_tail) )
 	{
 	  /* If we need more data, we go and read some */
-	  while ( 8 > rpmsg_queue.size() ) {
-	    rpmsg_buffer_len = read(poll_fd_.fd,
-				    rpmsg_buffer,
-				    MAX_RPMSG_BUFF_SIZE);
+	  while ( 8 > rpmsg_queue.size() )
+	    {
+	      rpmsg_buffer_len = read(poll_fd_.fd,
+				      rpmsg_buffer,
+				      MAX_RPMSG_BUFF_SIZE);
 
-	    /* Push the newly received data to the queue */
-	    /* WARNING: for unknown reason, the value of rpmsg_buffer_len
-	     * should NOT be checked before this point !!
-	     * I can be used in the for loop correctly though. */
-	    for ( int i = 0; i<rpmsg_buffer_len; i++ )
-	      rpmsg_queue.push(rpmsg_buffer[i]);
+	      /* Push the newly received data to the queue */
+	      /* WARNING: for unknown reason, the value of rpmsg_buffer_len
+	       * should NOT be checked before this point !!
+	       * I can be used in the for loop correctly though. */
+	      for ( int i = 0; i<rpmsg_buffer_len; i++ )
+		rpmsg_queue.push(rpmsg_buffer[i]);
 
-	    usleep(200);
+	      usleep(10);
 
-	    attempts--;
-	    if ( 0 >= attempts ) return 0;
-	  }
+	      attempts--;
+	      if ( 0 >= attempts ) return 0;
+	    }
 
 	  /* Getting the physical address back. */
 	  for ( int i = 0; i<4; i++ )
@@ -172,26 +161,20 @@ namespace eprosima {
 
       /* =======================================================================
 	 Actually reading datam from udmabuf and returning it */
-      UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
-      UXR_PRINTF("receiving data", bytes_read);
+      // UXR_PRINTF("rpmsg_phys_addr", rpmsg_phys_addr);
+      // UXR_PRINTF("receiving data", bytes_read);
 
       /* received data move the head value of the buf. */
       udma_head += bytes_read;
 
-#ifdef GPIO_MONITORING
-      /* GREEN: turns on PIN 2 on GPIO channel 2 */
-      gpio[2].data = gpio[2].data | 0x2;
-#endif
       //printf("read_index: %ld\r\n", read_index);
       for ( int i = 0; i<(int)len; i++ )
 	{
 	  buf[i] = ((uint8_t *)udmabuf + udma_tail)[i];
-	  //buf[i] = ((uint8_t *)udmabuf)[i];
-	  printf("%d: 0x%x\r\n", i, buf[i]);
-	  //UXR_PRINTF("buf", buf[i]);
+	  //printf("%d: 0x%x\r\n", i, buf[i]);
 	}
 
-      UXR_PRINTF("returning len", len);
+      //UXR_PRINTF("returning len", len);
 
       /* Len bytes were taken. Updating tail. */
       udma_tail += len;
