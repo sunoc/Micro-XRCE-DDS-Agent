@@ -141,6 +141,7 @@ namespace eprosima {
 
       // buffer style pointer for dmabuf
       ssize_t udma_head, udma_tail;
+      ssize_t udma_write_offset = 0;
 
 #ifdef GPIO_MONITORING
       /* GPIO */
