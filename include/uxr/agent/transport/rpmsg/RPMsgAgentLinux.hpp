@@ -133,14 +133,15 @@ namespace eprosima {
       std::queue<uint8_t> rpmsg_queue;
 
       /* udmabuf specific variables*/
-      struct pollfd udmabuf_fd, udmabuf_fd_addr;
-      unsigned char *udmabuf;
+      struct pollfd udmabuf0_fd, udmabuf0_fd_addr;
+      struct pollfd udmabuf1_fd, udmabuf1_fd_addr;
+      unsigned char *udmabuf0, *udmabuf1;
       size_t buf_size;
-      unsigned char  udma_attr[1024];
-      unsigned long  udma_phys_addr;
+      unsigned char  udma0_attr[1024], udma1_attr[1024];
+      unsigned long  udma0_phys_addr,  udma1_phys_addr;
 
       // buffer style pointer for dmabuf
-      ssize_t udma_head, udma_tail;
+      ssize_t udma_read_head, udma_read_tail;
       ssize_t udma_write_offset = 0;
 
 #ifdef GPIO_MONITORING

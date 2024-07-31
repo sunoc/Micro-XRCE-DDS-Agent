@@ -52,16 +52,17 @@ namespace eprosima {
       uint8_t udmabuf_payload[8];
 
       /* Reset index for the reading method. */
-      udma_head = 0;
-      udma_tail = 0;
+      udma_read_head = 0;
+      udma_read_tail = 0;
 
       /* Put the data in the dma buf. */
       for (size_t i = 0; i<len; i++)
-	  ((uint8_t *)udmabuf + udma_write_offset)[i] = buf[i];
+	  ((uint8_t *)udmabuf0 + udma_write_offset)[i] = buf[i];
 
-      /* Put the length and physical addr in the rpmsg buf. */
+      /* Put the length and physical addr in the rpmsg buf.
+	 Note that the offset udmabuff address is NOT sent. */
       for (int i = 0; i<4; i++)
-	udmabuf_payload[i] = (udma_phys_addr >> i*8) & 0x00FF;
+	udmabuf_payload[i] = (udma0_phys_addr >> i*8) & 0x00FF;
       for (int i = 0; i<4; i++)
 	udmabuf_payload[4+i] = ((unsigned long)len >> i*8) & 0x00FF;
 
@@ -81,6 +82,7 @@ namespace eprosima {
 	}
 
       udma_write_offset += len;
+
 #ifdef GPIO_MONITORING
       /* Brown monitoring point */
       gpio[3].data = gpio[3].data & ~(0x2);
@@ -120,7 +122,7 @@ namespace eprosima {
 
       /* =======================================================================
 	 This is the case where not enough data is in the buffer. */
-      if ( (ssize_t)len > (udma_head - udma_tail) )
+      if ( (ssize_t)len > (udma_read_head - udma_read_tail) )
 	{
 	  /* If we need more data, we go and read some */
 	  while ( 8 > rpmsg_queue.size() )
@@ -136,7 +138,7 @@ namespace eprosima {
 	      for ( int i = 0; i<rpmsg_buffer_len; i++ )
 		rpmsg_queue.push(rpmsg_buffer[i]);
 
-	      usleep(100);
+	      usleep(300);
 
 	      attempts--;
 	      if ( 0 >= attempts )
@@ -151,37 +153,34 @@ namespace eprosima {
 	      rpmsg_queue.pop();
 	    }
 
-	  /* Getting the data length. */
-	  bytes_read = rpmsg_queue.front();
-	  rpmsg_queue.pop();
-
-	  /* Emptying the rest of the queue */
-	  for ( int i = 0; i<3; i++ )
-	    rpmsg_queue.pop();
-
-	  if ( (ssize_t)len > bytes_read )
+	  for ( int i = 0; i<4; i++ )
 	    {
-	      UXR_ERROR("Didn't received enough data...", strerror(errno));
-	      UXR_ERROR("len > ...", len);
-	      UXR_ERROR("... than bytes_read", bytes_read);
-	      len = bytes_read;
+	      bytes_read += (rpmsg_queue.front() << i*8);
+	      rpmsg_queue.pop();
 	    }
 
-	  if ( rpmsg_phys_addr != udma_phys_addr )
-	    UXR_ERROR("Missmatched received phys addr...", strerror(errno));
-
+	  if ( (ssize_t)len > bytes_read )
+	    len = bytes_read;
 	}
 
       /* =======================================================================
 	 Actually reading datam from udmabuf and returning it.
 	 Received data move the head value of the buf. */
-      udma_head += bytes_read;
+      udma_read_head += bytes_read;
 
       for ( int i = 0; i<(int)len; i++ )
-	  buf[i] = ((uint8_t *)udmabuf + udma_tail)[i];
+	  buf[i] = ((uint8_t *)udmabuf1 + udma_read_tail)[i];
 
       /* Len bytes were taken. Updating tail. */
-      udma_tail += len;
+      udma_read_tail += len;
+
+      /* Self-index reset if everything was read. */
+      if ( udma_read_tail == udma_read_head )
+	{
+	  udma_read_head = 0;
+	  udma_read_tail = 0;
+	}
+
 #ifdef GPIO_MONITORING
       /* Blue monitoring point */
       gpio[3].data = gpio[3].data & ~(0x1);

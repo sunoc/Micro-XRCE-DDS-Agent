@@ -344,7 +344,7 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
     int ret;
-    char udma_addr_hello[4];
+    char udma_addr_hello[8];
 
     /* udmabuf sync_mode related vars */
     char  attr[1024];
@@ -415,22 +415,22 @@ bool TermiosRPMsgAgent::init()
 
     /**************************************************************************/
     buf_size = 1024; /* Ramdom value, should be changed later!! */
-    UXR_PRINTF("Setting up the UDMABUF.", buf_size);
-    if (-1 != (udmabuf_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
+    UXR_PRINTF("Setting up the UDMABUF0.", buf_size);
+    if (-1 != (udmabuf0_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
       {
-	udmabuf = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf_fd.fd, 0);
-	if ( -1 == *((int *)udmabuf) )
+	udmabuf0 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf0_fd.fd, 0);
+	if ( -1 == *((int *)udmabuf0) )
 	  UXR_ERROR("Failde to mmap udmabuf0", strerror(errno));
 
-	close(udmabuf_fd.fd);
+	close(udmabuf0_fd.fd);
       }
     else
       {
 	UXR_ERROR("Unable to open /dev/udmabuf0.", strerror(errno));
 	return false;
       }
-    UXR_PRINTF("udmabuf_fd.fd:", udmabuf_fd.fd);
-    UXR_PRINTF("udmabuf:", udmabuf);
+    UXR_PRINTF("udmabuf0_fd.fd:", udmabuf0_fd.fd);
+    UXR_PRINTF("udmabuf0:", udmabuf0);
 
 
     if ((fd  = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)) != -1) {
@@ -440,29 +440,74 @@ bool TermiosRPMsgAgent::init()
         close(fd);
     }
 
-    /**************************************************************************/
-    UXR_PRINTF("Check if the received address matches the UDMA physical address.", NULL);
-    if (-1 != (udmabuf_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
+    UXR_PRINTF("Setting up the UDMABUF1.", buf_size);
+    if (-1 != (udmabuf1_fd.fd  = open("/dev/udmabuf1", O_RDWR | O_SYNC)))
       {
-	if ( 0 >= read(udmabuf_fd_addr.fd, udma_attr, 1024))
-	  {
-	    UXR_ERROR("Unable to read from the fd addr", strerror(errno));
-	  }
-	sscanf((const char*)udma_attr, "0x%lx", &udma_phys_addr);
+	udmabuf1 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf1_fd.fd, 0);
+	if ( -1 == *((int *)udmabuf1) )
+	  UXR_ERROR("Failde to mmap udmabuf1", strerror(errno));
+
+	close(udmabuf1_fd.fd);
       }
     else
       {
-	UXR_ERROR("Unable to retried physical address.", strerror(errno));
+	UXR_ERROR("Unable to open /dev/udmabuf1.", strerror(errno));
 	return false;
       }
-    UXR_PRINTF("UDMABUF device open is successful.", NULL);
+    UXR_PRINTF("udmabuf1_fd.fd:", udmabuf0_fd.fd);
+    UXR_PRINTF("udmabuf1:", udmabuf1);
+
+
+    if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1) {
+        sprintf(attr, "%ld", sync_mode);
+	if (-1 == ::write(fd, attr, strlen(attr)))
+	  UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
+        close(fd);
+    }
 
     /**************************************************************************/
-    UXR_PRINTF("Sending a first UDMA addr message to the remoteproc to start it.", udma_phys_addr);
-    for (int i = 0; i<4; i++)
-	udma_addr_hello[i] = (udma_phys_addr >> i*8) & 0x00FF;
+    UXR_PRINTF("Try and read UDMABUF0 physical address.", NULL);
+    if (-1 != (udmabuf0_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
+      {
+	if ( 0 >= read(udmabuf0_fd_addr.fd, udma0_attr, 1024))
+	  {
+	    UXR_ERROR("Unable to read from the udmabuf0 addr", strerror(errno));
+	  }
+	sscanf((const char*)udma0_attr, "0x%lx", &udma0_phys_addr);
+      }
+    else
+      {
+	UXR_ERROR("Unable to get udmabuf0 physical address.", strerror(errno));
+	return false;
+      }
 
-    ret = ::write(poll_fd_.fd, &udma_addr_hello, 4);
+    UXR_PRINTF("Try and read UDMABUF1 physical address.", NULL);
+    if (-1 != (udmabuf1_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf1/phys_addr", O_RDONLY)))
+      {
+	if ( 0 >= read(udmabuf1_fd_addr.fd, udma1_attr, 1024))
+	  {
+	    UXR_ERROR("Unable to read from the udmabuf1 addr", strerror(errno));
+	  }
+	sscanf((const char*)udma1_attr, "0x%lx", &udma1_phys_addr);
+      }
+    else
+      {
+	UXR_ERROR("Unable to get udmabuf1 physical address.", strerror(errno));
+	return false;
+      }
+    /**************************************************************************/
+    UXR_PRINTF("UDMABUF0 and UDMABUF1 devices opening is successful.", NULL);
+
+    /**************************************************************************/
+    UXR_PRINTF("Sending UDMA0 addr message to the remoteproc", udma0_phys_addr);
+    for (int i = 0; i<4; i++)
+	udma_addr_hello[i] = (udma0_phys_addr >> i*8) & 0x00FF;
+
+    UXR_PRINTF("Sending UDMA1 addr message to the remoteproc", udma1_phys_addr);
+    for (int i = 0; i<4; i++)
+	udma_addr_hello[4+i] = (udma1_phys_addr >> i*8) & 0x00FF;
+
+    ret = ::write(poll_fd_.fd, &udma_addr_hello, 8);
     if ( 0  >= ret )
       {
 	UXR_ERROR("Unable to send data despite EP opening.", strerror(errno));
