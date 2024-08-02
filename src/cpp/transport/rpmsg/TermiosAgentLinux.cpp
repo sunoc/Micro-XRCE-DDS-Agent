@@ -422,6 +422,10 @@ bool TermiosRPMsgAgent::init()
 	if ( -1 == *((int *)udmabuf0) )
 	  UXR_ERROR("Failde to mmap udmabuf0", strerror(errno));
 
+	/* Initialize the bufer with zeros. */
+	for ( size_t i = 0; i<buf_size; i++)
+	  udmabuf0[i] = 0;
+
 	close(udmabuf0_fd.fd);
       }
     else
@@ -434,10 +438,10 @@ bool TermiosRPMsgAgent::init()
 
 
     if ((fd  = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)) != -1) {
-        sprintf(attr, "%ld", sync_mode);
-	if (-1 == ::write(fd, attr, strlen(attr)))
-	  UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
-        close(fd);
+      sprintf(attr, "%ld", sync_mode);
+      if (-1 == ::write(fd, attr, strlen(attr)))
+	UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
+      close(fd);
     }
 
     UXR_PRINTF("Setting up the UDMABUF1.", buf_size);
@@ -446,6 +450,10 @@ bool TermiosRPMsgAgent::init()
 	udmabuf1 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf1_fd.fd, 0);
 	if ( -1 == *((int *)udmabuf1) )
 	  UXR_ERROR("Failde to mmap udmabuf1", strerror(errno));
+
+	/* Initialize the bufer with zeros. */
+	for ( size_t i = 0; i<buf_size; i++)
+	  udmabuf0[i] = 0;
 
 	close(udmabuf1_fd.fd);
       }
