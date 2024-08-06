@@ -107,7 +107,7 @@ namespace eprosima {
       gpio[3].data = gpio[3].data | 0x1;
 #endif
       int rpmsg_buffer_len = 0;
-      int attempts = timeout*10;
+      int attempts = timeout*30;
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
@@ -138,11 +138,18 @@ namespace eprosima {
 	      for ( int i = 0; i<rpmsg_buffer_len; i++ )
 		rpmsg_queue.push(rpmsg_buffer[i]);
 
-	      usleep(100);
+	      usleep(30);
 
 	      attempts--;
 	      if ( 0 >= attempts )
-		return 0;
+		{
+		  UXR_PRINTF("Timeout", NULL);
+#ifdef GPIO_MONITORING
+		  /* Blue monitoring point */
+		  gpio[3].data = gpio[3].data & ~(0x1);
+#endif
+		  return 0;
+		}
 	    }
 
 	  /* 8 bytes of data were received !
@@ -153,12 +160,14 @@ namespace eprosima {
 	      rpmsg_queue.pop();
 	    }
 
+	  /* Getting the data length */
 	  for ( int i = 0; i<4; i++ )
 	    {
 	      bytes_read += (rpmsg_queue.front() << i*8);
 	      rpmsg_queue.pop();
 	    }
 
+	  /* In case not enough data is received */
 	  if ( (ssize_t)len > bytes_read )
 	    len = bytes_read;
 	}
