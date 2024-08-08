@@ -418,7 +418,8 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("Setting up the UDMABUF0.", buf_size);
     if (-1 != (udmabuf0_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
       {
-	udmabuf0 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf0_fd.fd, 0);
+	udmabuf0 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE,
+					 MAP_SHARED, udmabuf0_fd.fd, 0);
 	if ( -1 == *((int *)udmabuf0) )
 	  UXR_ERROR("Failde to mmap udmabuf0", strerror(errno));
 
@@ -447,7 +448,8 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("Setting up the UDMABUF1.", buf_size);
     if (-1 != (udmabuf1_fd.fd  = open("/dev/udmabuf1", O_RDWR | O_SYNC)))
       {
-	udmabuf1 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, udmabuf1_fd.fd, 0);
+	udmabuf1 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE,
+					 MAP_SHARED, udmabuf1_fd.fd, 0);
 	if ( -1 == *((int *)udmabuf1) )
 	  UXR_ERROR("Failde to mmap udmabuf1", strerror(errno));
 
@@ -466,12 +468,13 @@ bool TermiosRPMsgAgent::init()
     UXR_PRINTF("udmabuf1:", udmabuf1);
 
 
-    if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1) {
+    if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1)
+      {
         sprintf(attr, "%ld", sync_mode);
 	if (-1 == ::write(fd, attr, strlen(attr)))
 	  UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
         close(fd);
-    }
+      }
 
     /**************************************************************************/
     UXR_PRINTF("Try and read UDMABUF0 physical address.", NULL);
