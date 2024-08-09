@@ -83,6 +83,7 @@ namespace eprosima {
 
       udma_write_offset += len;
 
+      UXR_PRINTF("udma_write_offset", udma_write_offset);
 #ifdef GPIO_MONITORING
       /* Brown monitoring point */
       gpio[3].data = gpio[3].data & ~(0x2);
@@ -107,7 +108,7 @@ namespace eprosima {
       gpio[3].data = gpio[3].data | 0x1;
 #endif
       int rpmsg_buffer_len = 0;
-      int attempts = timeout*30;
+      int attempts = timeout*100;
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
@@ -120,6 +121,7 @@ namespace eprosima {
 	return errno;
       }
 
+      UXR_PRINTF("len", len);
       /* =======================================================================
 	 This is the case where not enough data is in the buffer. */
       if ( (ssize_t)len > (udma_read_head - udma_read_tail) )
@@ -138,18 +140,15 @@ namespace eprosima {
 	      for ( int i = 0; i<rpmsg_buffer_len; i++ )
 		rpmsg_queue.push(rpmsg_buffer[i]);
 
-	      usleep(30);
+
+	      if ( 8 == rpmsg_queue.size() )
+		break;
+
+	      /* Else */
+	      usleep(10);
 
 	      attempts--;
-	      if ( 0 >= attempts )
-		{
-		  UXR_PRINTF("Timeout", NULL);
-#ifdef GPIO_MONITORING
-		  /* Blue monitoring point */
-		  gpio[3].data = gpio[3].data & ~(0x1);
-#endif
-		  return 0;
-		}
+	      if ( 0 >= attempts ) return 0;
 	    }
 
 	  /* 8 bytes of data were received !
@@ -183,6 +182,8 @@ namespace eprosima {
       /* Len bytes were taken. Updating tail. */
       udma_read_tail += len;
 
+      UXR_PRINTF("udma_read_head", udma_read_head);
+      UXR_PRINTF("udma_read_tail", udma_read_tail);
       /* Self-index reset if everything was read. */
       if ( udma_read_tail == udma_read_head )
 	{
