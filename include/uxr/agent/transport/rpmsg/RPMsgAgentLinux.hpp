@@ -3,7 +3,6 @@
 
 #include <uxr/agent/transport/Server.hpp>
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
-#include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
 
 #include <cstdint>
 #include <cstddef>
@@ -26,6 +25,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sstream>
 #include <linux/rpmsg.h>
 #include <queue>
 #include <sys/mman.h>
@@ -97,7 +97,7 @@ namespace eprosima {
 
       ssize_t read_data(
 			uint8_t* buf,
-			size_t len,
+			size_t max_len,
 			int timeout,
 			TransportRc& transport_rc);
 
@@ -114,7 +114,6 @@ namespace eprosima {
       const uint8_t addr_;
       struct pollfd poll_fd_;
       uint8_t buffer_[SERVER_BUFFER_SIZE];
-      FramingIO framing_io_;
       int opt;
       int charfd;
 
@@ -139,10 +138,6 @@ namespace eprosima {
       size_t buf_size;
       unsigned char  udma0_attr[1024], udma1_attr[1024];
       unsigned long  udma0_phys_addr,  udma1_phys_addr;
-
-      // buffer style pointer for dmabuf
-      ssize_t udma_read_head, udma_read_tail;
-      ssize_t udma_write_offset = 0;
 
 #ifdef GPIO_MONITORING
       /* GPIO */
