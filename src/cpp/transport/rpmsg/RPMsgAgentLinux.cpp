@@ -126,7 +126,7 @@ namespace eprosima {
       gpio[3].data = gpio[3].data | 0x1;
 #endif
       int rpmsg_buffer_len = 0;
-      int attempts = timeout*10;
+      int attempts = timeout*100;
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
@@ -150,7 +150,7 @@ namespace eprosima {
 	  if ( 8 == rpmsg_queue.size() )
 	    break;
 	  /* Else */
-	  usleep(100);
+	  usleep(10);
 
 	  attempts--;
 	  if ( 0 >= attempts )
