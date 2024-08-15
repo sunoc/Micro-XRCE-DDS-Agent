@@ -77,9 +77,30 @@ namespace eprosima {
       ssize_t bytes_written;
       uint8_t udmabuf_payload[8];
 
+      /* data copy and allignement related variables. */
+      int alli_index = 0;
+      int alli_len = (int)len;
+      int long_cnt = 0;
+
       /* Put the data in the dma buf. */
-      for (size_t i = 0; i<len; i++)
-	  ((uint8_t *)udmabuf0)[i] = buf[i];
+
+      /* allign the buf for 32bits values. */
+      while ( ( (unsigned long)buf & 0x03 ) != 0 )
+	{
+	  *((uint8_t*)udmabuf0 + alli_index) = *(buf);
+	  alli_len--;
+	  buf++;
+	  alli_index++;
+	}
+
+      /* Copying the data by blocks of 32bits */
+      while ( long_cnt <= alli_len/4 )
+	{
+	  *((uint32_t*)udmabuf0 + long_cnt) = *((uint32_t*)buf + long_cnt);
+	  long_cnt++;
+	}
+      // for (size_t i = 0; i<len; i++)
+      // 	  ((uint8_t *)udmabuf0)[i] = buf[i];
 
       /* Put the length and physical addr in the rpmsg buf.
 	 Note that the offset udmabuff address is NOT sent. */
@@ -132,6 +153,11 @@ namespace eprosima {
       size_t rpmsg_phys_addr = 0;
       ssize_t bytes_read = 0;
 
+      /* data copy and allignement related variables. */
+      int alli_index = 0;
+      int len;
+      int long_cnt = 0;
+
       /* If we need more data, we go and read some */
       while ( 8 > rpmsg_queue.size() )
 	{
@@ -178,8 +204,23 @@ namespace eprosima {
       /* =======================================================================
 	 Actually reading datam from udmabuf and returning it.
 	 Received data move the head value of the buf. */
-      for ( int i = 0; i<(int)bytes_read; i++ )
-	buf[i] = ((uint8_t *)udmabuf1)[i];
+
+      /* allign the buf for 32bits values. */
+      len = bytes_read;
+      while ( ( (unsigned long)buf & 0x03 ) != 0 )
+	{
+	  *(buf) = *((uint8_t*)udmabuf1 + alli_index);
+	  len--;
+	  buf++;
+	  alli_index++;
+	}
+
+      /* Copying the data by blocks of 32bits */
+      while ( long_cnt <= len/4 )
+	{
+	*((uint32_t*)buf + long_cnt) = *((uint32_t*)udmabuf1 + long_cnt);
+	long_cnt++;
+      }
 
 #ifdef GPIO_MONITORING
       /* Blue monitoring point */
