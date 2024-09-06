@@ -44,9 +44,9 @@
 #endif
 
 /* RPMsg max payload size values*/
-/* 4096 + 16 + 24 = 4136 */
+/* 8192 + 16 + 24 = 8232 */
 #define RPMSG_HEADER_LEN        16
-#define MAX_RPMSG_BUFF_SIZE     (4136 - RPMSG_HEADER_LEN)
+#define MAX_RPMSG_BUFF_SIZE     (8232 - RPMSG_HEADER_LEN)
 #define PAYLOAD_MIN_SIZE	1
 #define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
 #define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)

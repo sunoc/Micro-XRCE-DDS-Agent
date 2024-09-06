@@ -414,7 +414,7 @@ bool TermiosRPMsgAgent::init()
       }
 
     /**************************************************************************/
-    buf_size = 4136; /* Ramdom value, should be changed later!! */
+    buf_size = 8232; /* Ramdom value, should be changed later!! */
     UXR_PRINTF("Setting up the UDMABUF0.", buf_size);
     if (-1 != (udmabuf0_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
       {
