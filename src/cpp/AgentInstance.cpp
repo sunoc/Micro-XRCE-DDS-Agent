@@ -87,6 +87,11 @@ bool AgentInstance::create(
             agent_thread_ = std::move(agent::create_agent_thread<PseudoTerminalAgent>(argc, argv, exit_signal, valid_transport));
             break;
         }
+	case agent::TransportKind::RPMSGLITE:
+        {
+            agent_thread_ = std::move(agent::create_agent_thread<TermiosRPMsgLiteAgent>(argc, argv, exit_signal, valid_transport));
+            break;
+        }
 #endif  // _WIN32
         case agent::TransportKind::HELP:
         {
