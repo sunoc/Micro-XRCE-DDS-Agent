@@ -1,7 +1,7 @@
 #ifndef _UXR_AGENT_TRANSPORT_RPMSGLITE_TERMIOSAGENTLINUX_HPP_
 #define _UXR_AGENT_TRANSPORT_RPMSGLITE_TERMIOSAGENTLINUX_HPP_
 
-#include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
+#include <uxr/agent/transport/rpmsg-lite/RPMsgLiteAgentLinux.hpp>
 
 #include <termios.h>
 
@@ -22,25 +22,9 @@ namespace eprosima {
 
       int getfd() { return poll_fd_.fd; };
 
-      void send_shutdown(int filedescriptor);
-
-      int rpmsg_create_ept(int rpfd,
-			   rpmsg_endpoint_info *ept);
-
-      char *get_rpmsg_ept_dev_name(const char *rpmsg_name,
-				   const char *ept_name,
-				   char *ept_device_name);
-
-      int bind_rpmsg_chrdev(const char *rpmsg_name);
-
-      int get_rpmsg_chrdev_fd(const char *rpmsg_name,
-			      char *rpmsg_ctrl_name);
-
-      void set_src_dst(char *out,
-		       rpmsg_endpoint_info *pep);
-
-      void lookup_channel(char *out,
-			  rpmsg_endpoint_info *pep);
+      void send_shutdown(struct rpmsg_lite_instance * dev,
+			 struct rpmsg_lite_endpoint * ept,
+			 uint32_t  	              dst);
 
     private:
 
@@ -48,6 +32,10 @@ namespace eprosima {
       bool fini() final;
       bool handle_error(
 			TransportRc transport_rc) final;
+
+      /* RPMsg-Lite related variables. */
+      struct rpmsg_lite_instance *  	rpmsg_lite_dev;
+      struct rpmsg_lite_endpoint*       rpmsg_lite_ept;
 
     private:
       const std::string dev_;

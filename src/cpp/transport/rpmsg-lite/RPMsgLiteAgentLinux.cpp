@@ -1,3 +1,4 @@
+#include <uxr/agent/transport/rpmsg-lite/RPMsgLiteAgentLinux.hpp>
 #include <uxr/agent/utils/Conversion.hpp>
 #include <uxr/agent/logger/Logger.hpp>
 
