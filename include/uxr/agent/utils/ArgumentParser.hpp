@@ -72,7 +72,7 @@ enum class TransportKind
     SERIAL,
     MULTISERIAL,
     PSEUDOTERMINAL,
-    RPMSGLITE
+    RPMSGLITE,
 #endif // _WIN32
     HELP
 };
@@ -1210,7 +1210,7 @@ private:
   SerialArgs<AgentType> serial_args_;
   MultiSerialArgs<AgentType> multiserial_args_;
   PseudoTerminalArgs<AgentType> pseudoterminal_args_;
-  RPMsgLiteArgs<AgentType> rpmsg_lite_ags_;
+  RPMsgLiteArgs<AgentType> rpmsg_lite_args_;
 #endif // _WIN32
     TransportKind transport_kind_;
     std::unique_ptr<AgentType> agent_server_;
