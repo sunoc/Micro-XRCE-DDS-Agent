@@ -13,17 +13,22 @@ namespace uxr {
 class RPMsgLiteAgent : public Server<RPMsgLiteEndPoint>
 {
 public:
-    RPMsgLiteAgent(
-            uint8_t addr,
-            Middleware::Kind middleware_kind);
+  RPMsgLiteAgent(
+		 uint8_t addr,
+		 Middleware::Kind middleware_kind);
 
 #ifdef UAGENT_DISCOVERY_PROFILE
-    bool has_discovery() final { return false; }
+  bool has_discovery() final { return false; }
 #endif
 
 #ifdef UAGENT_P2P_PROFILE
-    bool has_p2p() final { return false; }
+  bool has_p2p() final { return false; }
 #endif
+
+  /* RPMsg-Lite related variables. */
+  struct rpmsg_lite_instance *  	rpmsg_lite_dev;
+  struct rpmsg_lite_endpoint*           rpmsg_lite_ept;
+
 
 private:
   virtual bool init() = 0;
@@ -53,7 +58,6 @@ private:
 
 protected:
     const uint8_t addr_;
-    struct pollfd poll_fd_;
     uint8_t buffer_[SERVER_BUFFER_SIZE];
     FramingIO framing_io_;
 };

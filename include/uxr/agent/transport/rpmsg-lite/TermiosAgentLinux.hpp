@@ -20,8 +20,6 @@ namespace eprosima {
 
       ~TermiosRPMsgLiteAgent();
 
-      int getfd() { return poll_fd_.fd; };
-
       void send_shutdown(struct rpmsg_lite_instance * dev,
 			 struct rpmsg_lite_endpoint * ept,
 			 uint32_t  	              dst);
@@ -32,10 +30,6 @@ namespace eprosima {
       bool fini() final;
       bool handle_error(
 			TransportRc transport_rc) final;
-
-      /* RPMsg-Lite related variables. */
-      struct rpmsg_lite_instance *  	rpmsg_lite_dev;
-      struct rpmsg_lite_endpoint*       rpmsg_lite_ept;
 
     private:
       const std::string dev_;

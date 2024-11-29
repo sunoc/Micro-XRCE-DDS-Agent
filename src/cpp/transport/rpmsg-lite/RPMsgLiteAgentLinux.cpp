@@ -12,7 +12,6 @@ RPMsgLiteAgent::RPMsgLiteAgent(
         Middleware::Kind middleware_kind)
     : Server<RPMsgLiteEndPoint>{middleware_kind}
     , addr_{addr}
-    , poll_fd_{}
     , buffer_{0}
     , framing_io_(
           addr,
@@ -21,31 +20,45 @@ RPMsgLiteAgent::RPMsgLiteAgent(
 {}
 
 ssize_t RPMsgLiteAgent::write_data(
-        uint8_t* buf,
-        size_t len,
-        TransportRc& transport_rc)
+				   uint8_t* buf,
+				   size_t len,
+				   TransportRc& transport_rc)
 {
-    size_t rv = 0;
-    ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
-    if (0 < bytes_written)
+  int32_t ret;
+  uint8_t* tx_buffer = (uint8_t*)rpmsg_lite_alloc_tx_buffer(rpmsg_lite_dev, &len, 0);
+  if ( RL_NULL == tx_buffer )
+    UXR_ERROR("Failed to allocate TX buffer", strerror(errno));
+
+  /* Dirty way to put data in the tx buffer... */
+  for (int i = 0; i<len; i++)
+    tx_buffer[i] = buf[i];
+
+  ret = rpmsg_lite_send_nocopy(dev, ept, dst, tx_buffer, len);
+  if (0 != ret)
     {
-        rv = size_t(bytes_written);
+      UXR_ERROR("Failed to write data", strerror(errno));
     }
-    else
-    {
-        transport_rc = TransportRc::server_error;
-    }
-    return rv;
+  else
+    return len;
 }
 
 ssize_t RPMsgLiteAgent::read_data(
-        uint8_t* buf,
-        size_t len,
-        int timeout,
-        TransportRc& transport_rc)
+				  uint8_t* buf,
+				  size_t len,
+				  int timeout,
+				  TransportRc& transport_rc)
 {
+  int32_t ret = rpmsg_queue_recv_nocopy(dev, q, ept, dst, buf, len);
+  if (0 != ret)
+    {
+      UXR_ERROR("Failed to write data", strerror(errno));
+    }
+  else
+    return len;
+
+    
     ssize_t bytes_read = 0;
-    int poll_rv = poll(&poll_fd_, 1, timeout);
+    //int poll_rv = poll(&poll_fd_, 1, timeout);
     if(poll_fd_.revents & (POLLERR+POLLHUP))
     {
         transport_rc = TransportRc::server_error;;
