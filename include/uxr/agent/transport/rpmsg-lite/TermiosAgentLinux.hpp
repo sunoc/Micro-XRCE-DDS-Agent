@@ -20,18 +20,16 @@ namespace eprosima {
 
       ~TermiosRPMsgLiteAgent();
 
-      void send_shutdown(struct rpmsg_lite_instance * dev,
-			 struct rpmsg_lite_endpoint * ept,
-			 uint32_t  	              dst);
-
     private:
 
       bool init() final;
       bool fini() final;
       bool handle_error(
 			TransportRc transport_rc) final;
+      void send_shutdown(struct rpmsg_lite_instance * dev,
+			 struct rpmsg_lite_endpoint * ept,
+			 uint32_t  	              dst);
 
-    private:
       const std::string dev_;
       const int open_flags_;
       const termios termios_attrs_;

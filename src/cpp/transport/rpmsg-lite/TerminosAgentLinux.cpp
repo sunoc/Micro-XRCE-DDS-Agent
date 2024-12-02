@@ -49,7 +49,7 @@ namespace eprosima {
      **************************************************************************/
     void TermiosRPMsgLiteAgent::send_shutdown(struct rpmsg_lite_instance * dev,
 					      struct rpmsg_lite_endpoint * ept,
-					      uint32_t  	           dst);
+					      uint32_t  	           dst)
     {
       int32_t ret;
       unsigned int umsg[8] = {
@@ -80,10 +80,14 @@ namespace eprosima {
     bool TermiosRPMsgLiteAgent::init()
     {
       UXR_PRINTF("RPMSG-LITE INIT", NULL);
+      void *rx_cb_data;
 
       /* Main initialization. */
-      rpmsg_lite_dev = rpmsg_lite_master_init();
-      if ( RL_NULL == rpmsg_lite_devt )
+      rpmsg_lite_dev = rpmsg_lite_master_init((uint32_t *)IPI_ADDR,
+					      IPI_LEN,
+					      0,
+					      0);
+      if ( RL_NULL == rpmsg_lite_dev )
       	UXR_ERROR("Unable to init RPMsg-Lite Master.", strerror(errno));
 
 
@@ -94,7 +98,10 @@ namespace eprosima {
 
 
       /* Create RPMsg-lite end-point. */
-      rpmsg_lite_ept = rpmsg_lite_create_ept(rpmsg_lite_dev);
+      rpmsg_lite_ept = rpmsg_lite_create_ept(rpmsg_lite_dev,
+					     RL_ADDR_ANY,
+					     rpmsg_queue_rx_cb,
+					     rx_cb_data);
       if ( RL_NULL == rpmsg_lite_ept )
       	UXR_ERROR("Unable to create RPMsg-Lite endpoint.", strerror(errno));
 

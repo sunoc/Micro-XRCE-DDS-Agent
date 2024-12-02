@@ -9,6 +9,11 @@
 #include <uxr/agent/transport/rpmsg-lite/include/rpmsg_queue.h>
 #include <uxr/agent/transport/rpmsg-lite/include/rpmsg_ns.h>
 
+#define SHUTDOWN_MSG 0xEF56A55A
+
+#define IPI_ADDR 0xFF990000
+#define IPI_LEN  0xE0
+
 /* message printing utils */
 #define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
 #define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)

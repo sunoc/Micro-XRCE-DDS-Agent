@@ -169,6 +169,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR
         src/cpp/transport/serial/MultiTermiosAgentLinux.cpp
         src/cpp/transport/serial/PseudoTerminalAgentLinux.cpp
 	src/cpp/transport/rpmsg-lite/RPMsgLiteAgentLinux.cpp
+	src/cpp/transport/rpmsg-lite/TerminosAgentLinux.cpp
         $<$<BOOL:${UAGENT_SOCKETCAN_PROFILE}>:src/cpp/transport/can/CanAgentLinux.cpp>
         $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServerLinux.cpp>
         $<$<BOOL:${UAGENT_P2P_PROFILE}>:src/cpp/transport/p2p/AgentDiscovererLinux.cpp>
@@ -383,8 +384,13 @@ if(UAGENT_BUILD_TESTS)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
       add_subdirectory(test/unittest/transport/serial)
       add_subdirectory(test/unittest/transport/rpmsg-lite)
+      add_subdirectory(test/unittest/transport/rpmsg-lite/common)
+      add_subdirectory(test/unittest/transport/rpmsg-lite/virtio)
+      add_subdirectory(test/unittest/transport/rpmsg-lite/rpmsg-lite)
+      add_subdirectory(test/unittest/transport/rpmsg-lite/rpmsg-lite/porting/environment)
+      add_subdirectory(test/unittest/transport/rpmsg-lite/rpmsg-lite/porting/platform/aarch64)
     endif()
-endif()
+  endif()
 
 ###############################################################################
 # Packaging
