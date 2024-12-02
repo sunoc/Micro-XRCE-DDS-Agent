@@ -27,8 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rpmsg_env.h"
-#include "virtqueue.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_env.h"
+#include "uxr/agent/transport/rpmsg-lite/include/virtqueue.h"
 
 /* Prototype for internal functions. */
 static void vq_ring_update_avail(struct virtqueue *vq, uint16_t desc_idx);

@@ -30,8 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rpmsg_lite.h"
-#include "rpmsg_ns.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_lite.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_ns.h"
 #include <stdint.h>
 
 #define RL_NS_NAME_SIZE (32)

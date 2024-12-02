@@ -156,33 +156,29 @@ endforeach()
 ###############################################################################
 # Sources
 ###############################################################################
-# Check platform.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(TRANSPORT_SRCS
-        src/cpp/transport/udp/UDPv4AgentLinux.cpp
-        src/cpp/transport/udp/UDPv6AgentLinux.cpp
-        src/cpp/transport/tcp/TCPv4AgentLinux.cpp
-        src/cpp/transport/tcp/TCPv6AgentLinux.cpp
-        src/cpp/transport/serial/SerialAgentLinux.cpp
-        src/cpp/transport/serial/TermiosAgentLinux.cpp
-        src/cpp/transport/serial/MultiSerialAgentLinux.cpp
-        src/cpp/transport/serial/MultiTermiosAgentLinux.cpp
-        src/cpp/transport/serial/PseudoTerminalAgentLinux.cpp
-	src/cpp/transport/rpmsg-lite/RPMsgLiteAgentLinux.cpp
-	src/cpp/transport/rpmsg-lite/TerminosAgentLinux.cpp
-        $<$<BOOL:${UAGENT_SOCKETCAN_PROFILE}>:src/cpp/transport/can/CanAgentLinux.cpp>
-        $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServerLinux.cpp>
-        $<$<BOOL:${UAGENT_P2P_PROFILE}>:src/cpp/transport/p2p/AgentDiscovererLinux.cpp>
-        )
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(TRANSPORT_SRCS
-        src/cpp/transport/udp/UDPv4AgentWindows.cpp
-        src/cpp/transport/udp/UDPv6AgentWindows.cpp
-        src/cpp/transport/tcp/TCPv4AgentWindows.cpp
-        src/cpp/transport/tcp/TCPv6AgentWindows.cpp
-        $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServerWindows.cpp>
-        )
-endif()
+set(TRANSPORT_SRCS
+  src/cpp/transport/udp/UDPv4AgentLinux.cpp
+  src/cpp/transport/udp/UDPv6AgentLinux.cpp
+  src/cpp/transport/tcp/TCPv4AgentLinux.cpp
+  src/cpp/transport/tcp/TCPv6AgentLinux.cpp
+  src/cpp/transport/serial/SerialAgentLinux.cpp
+  src/cpp/transport/serial/TermiosAgentLinux.cpp
+  src/cpp/transport/serial/MultiSerialAgentLinux.cpp
+  src/cpp/transport/serial/MultiTermiosAgentLinux.cpp
+  src/cpp/transport/serial/PseudoTerminalAgentLinux.cpp
+  src/cpp/transport/rpmsg-lite/RPMsgLiteAgentLinux.cpp
+  src/cpp/transport/rpmsg-lite/TerminosAgentLinux.cpp
+  src/cpp/transport/rpmsg-lite/virtio/virtqueue.c
+  src/cpp/transport/rpmsg-lite/common/llist.c
+  src/cpp/transport/rpmsg-lite/rpmsg_lite/rpmsg_lite.c
+  src/cpp/transport/rpmsg-lite/rpmsg_lite/rpmsg_ns.c
+  src/cpp/transport/rpmsg-lite/rpmsg_lite/rpmsg_queue.c
+  src/cpp/transport/rpmsg-lite/rpmsg_lite/porting/environment/rpmsg_env_bm.c
+  src/cpp/transport/rpmsg-lite/rpmsg_lite/porting/platform/aarch64/rpmsg_platform.c
+  $<$<BOOL:${UAGENT_SOCKETCAN_PROFILE}>:src/cpp/transport/can/CanAgentLinux.cpp>
+  $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServerLinux.cpp>
+  $<$<BOOL:${UAGENT_P2P_PROFILE}>:src/cpp/transport/p2p/AgentDiscovererLinux.cpp>
+)
 
 # Set source files
 set(SRCS
@@ -387,8 +383,6 @@ if(UAGENT_BUILD_TESTS)
       add_subdirectory(test/unittest/transport/rpmsg-lite/common)
       add_subdirectory(test/unittest/transport/rpmsg-lite/virtio)
       add_subdirectory(test/unittest/transport/rpmsg-lite/rpmsg-lite)
-      add_subdirectory(test/unittest/transport/rpmsg-lite/rpmsg-lite/porting/environment)
-      add_subdirectory(test/unittest/transport/rpmsg-lite/rpmsg-lite/porting/platform/aarch64)
     endif()
   endif()
 

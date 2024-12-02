@@ -42,7 +42,7 @@
  *       Source file for basic linked list service.
  *
  **************************************************************************/
-#include "llist.h"
+#include "uxr/agent/transport/rpmsg-lite/include/llist.h"
 
 #define LIST_NULL ((void *)0)
 /*!

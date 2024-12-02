@@ -31,8 +31,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "rpmsg_lite.h"
-#include "rpmsg_platform.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_lite.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_platform.h"
 
 /* Interface which is used to interact with the virtqueue layer,
  * a different interface is used, when the local processor is the MASTER

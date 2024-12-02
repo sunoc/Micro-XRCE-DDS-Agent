@@ -43,10 +43,10 @@
  *
  **************************************************************************/
 
-#include "rpmsg_compiler.h"
-#include "rpmsg_env.h"
-#include "rpmsg_platform.h"
-#include "virtqueue.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_compiler.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_env.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_platform.h"
+#include "uxr/agent/transport/rpmsg-lite/include/virtqueue.h"
 
 #include <stdlib.h>
 #include <string.h>

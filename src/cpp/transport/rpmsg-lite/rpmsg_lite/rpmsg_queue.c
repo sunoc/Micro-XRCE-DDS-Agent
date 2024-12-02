@@ -30,8 +30,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include "rpmsg_lite.h"
-#include "rpmsg_queue.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_lite.h"
+#include "uxr/agent/transport/rpmsg-lite/include/rpmsg_queue.h"
 
 int32_t rpmsg_queue_rx_cb(void *payload, uint32_t payload_len, uint32_t src, void *priv)
 {
