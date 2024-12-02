@@ -6,6 +6,13 @@
 #include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
 
 #include <uxr/agent/transport/rpmsg-lite/include/rpmsg_lite.h>
+#include <uxr/agent/transport/rpmsg-lite/include/rpmsg_queue.h>
+#include <uxr/agent/transport/rpmsg-lite/include/rpmsg_ns.h>
+
+/* message printing utils */
+#define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
+#define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)
+#define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
 
 namespace eprosima {
 namespace uxr {
@@ -27,6 +34,7 @@ public:
 
   /* RPMsg-Lite related variables. */
   struct rpmsg_lite_instance *  	rpmsg_lite_dev;
+  rpmsg_queue_handle                    rpmsg_lite_q;
   struct rpmsg_lite_endpoint*           rpmsg_lite_ept;
 
 

@@ -87,6 +87,11 @@ namespace eprosima {
       	UXR_ERROR("Unable to init RPMsg-Lite Master.", strerror(errno));
 
 
+      /* Create the queue for blocking, no copy read. */
+      rpmsg_lite_q = rpmsg_queue_create(rpmsg_lite_dev);
+      if ( RL_NULL == rpmsg_lite_q )
+      	UXR_ERROR("Unable to create RPMsg-Lite queue.", strerror(errno));
+
 
       /* Create RPMsg-lite end-point. */
       rpmsg_lite_ept = rpmsg_lite_create_ept(rpmsg_lite_dev);
