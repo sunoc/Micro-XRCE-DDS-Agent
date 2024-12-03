@@ -1,4 +1,11 @@
 #ifndef RPMSG_CONFIG_H_
 #define RPMSG_CONFIG_H_
 
+#define RL_GEN_SW_MBOX_BASE 0xff990000
+#define RL_GEN_SW_MBOX_IRQ 0xff370000
+#define RL_GEN_SW_MBOX_REMOTE_IRQ 0xff370000
+
+
+
+
 #endif /* RPMSG_CONFIG_H_ */

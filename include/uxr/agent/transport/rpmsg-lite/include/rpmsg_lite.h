@@ -34,10 +34,6 @@
 #ifndef RPMSG_LITE_H_
 #define RPMSG_LITE_H_
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 #include <stddef.h>
 #include "rpmsg_compiler.h"
 #include "virtqueue.h"
@@ -409,9 +405,5 @@ int32_t rpmsg_lite_send_nocopy(struct rpmsg_lite_instance *rpmsg_lite_dev,
 #endif /* RL_API_HAS_ZEROCOPY */
 
 //! @}
-
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* RPMSG_LITE_H_ */
