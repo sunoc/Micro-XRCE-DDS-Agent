@@ -13,12 +13,12 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <signal.h>
+//#include <signal.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include <dirent.h>
-#include <errno.h>
+//#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -26,8 +26,9 @@
 #include <time.h>
 #include <fcntl.h>
 #include <string.h>
-#include <linux/rpmsg.h>
-#include <queue>
+//#include <linux/rpmsg.h>
+#include <openamp/rpmsg.h>
+//#include <queue>
 
 
 /* RPMsg max payload size values*/
