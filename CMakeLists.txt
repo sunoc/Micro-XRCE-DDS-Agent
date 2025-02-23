@@ -169,7 +169,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR
         src/cpp/transport/serial/MultiTermiosAgentLinux.cpp
         src/cpp/transport/serial/PseudoTerminalAgentLinux.cpp
 	src/cpp/transport/rpmsg/RPMsgAgentLinux.cpp
-        src/cpp/transport/rpmsg/TermiosAgentLinux.cpp
+	src/cpp/transport/rpmsg/TermiosAgentLinux.cpp
+	src/cpp/transport/rpmsg/helper.cpp
+	src/cpp/transport/rpmsg/platform_info.cpp
+	src/cpp/transport/rpmsg/rsc_table.cpp
         $<$<BOOL:${UAGENT_SOCKETCAN_PROFILE}>:src/cpp/transport/can/CanAgentLinux.cpp>
         $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServerLinux.cpp>
         $<$<BOOL:${UAGENT_P2P_PROFILE}>:src/cpp/transport/p2p/AgentDiscovererLinux.cpp>
