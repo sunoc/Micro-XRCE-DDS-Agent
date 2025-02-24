@@ -8,38 +8,11 @@
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
-#include <sys/types.h>
 
-#include <poll.h>
-#include <sys/socket.h>
-#include <unistd.h>
-//#include <signal.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#include <dirent.h>
-//#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <sys/ioctl.h>
-#include <time.h>
-#include <fcntl.h>
-#include <string.h>
-//#include <linux/rpmsg.h>
 #include <openamp/rpmsg.h>
-//#include <queue>
-
 
 /* RPMsg max payload size values*/
-#define RPMSG_HEADER_LEN        16
-#define MAX_RPMSG_BUFF_SIZE     (512 - RPMSG_HEADER_LEN)
-#define PAYLOAD_MIN_SIZE	1
-#define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
-#define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
-
-#define RPMSG_BUS_SYS "/sys/bus/rpmsg"
-
+#define RPMSG_SERV_NAME "rpmsg-client-sample"
 #define SHUTDOWN_MSG 0xEF56A55A
 
 /* message printing utils */
@@ -64,13 +37,6 @@ namespace eprosima {
 #ifdef UAGENT_P2P_PROFILE
       bool has_p2p() final { return false; }
 #endif
-
-      /* rpmsg structure */
-      rpmsg_endpoint_info eptinfo = {
-	"rpmsg-openamp-demo-channel", // name[32]
-	0, // src
-	0, // dst
-      };
 
     private:
 
@@ -105,20 +71,6 @@ namespace eprosima {
       FramingIO framing_io_;
       int opt;
       int charfd;
-
-      /* RPMsg-specific general variables */
-      int ntimes = 1;
-      char rpmsg_dev[NAME_MAX];
-      char rpmsg_char_name[16];
-      char fpath[2*NAME_MAX];
-
-      char ept_dev_name[16];
-      char ept_dev_path[32];
-
-      //int32_t rpmsg_buffer_len;
-      int32_t rpmsg_buffer_top;
-      uint8_t rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
-      std::queue<uint8_t> rpmsg_queue;
 
     };
 

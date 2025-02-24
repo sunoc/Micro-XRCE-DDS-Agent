@@ -20,10 +20,6 @@ namespace eprosima {
 		    std::bind(&RPMsgAgent::read_data, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4))
       , opt{}
       , charfd{}
-    //, rpmsg_buffer_len{0}
-      , rpmsg_buffer_top{0}
-    //  , rpmsg_leftover_len{0}
-      , rpmsg_queue{}
     {}
 
     ssize_t RPMsgAgent::write_data(
@@ -51,37 +47,10 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
-      int rpmsg_buffer_len = 0;
-      int attempts = 10;
+      // int rpmsg_buffer_len = 0;
+      // int attempts = 10;
 
-      if ( 0 >= timeout ){
-	UXR_ERROR("Timeout: ", strerror(errno));
-	transport_rc = TransportRc::timeout_error;
-	return errno;
-      }
-
-      /* If we need more data, we go and read some */
-      while ( len > rpmsg_queue.size() ) {
-	rpmsg_buffer_len = read(poll_fd_.fd, rpmsg_buffer, MAX_RPMSG_BUFF_SIZE);
-
-	/* Push the newly received data to the queue */
-	for ( int i = 0; i<rpmsg_buffer_len; i++ ) {
-	  rpmsg_queue.push(rpmsg_buffer[i]);
-	}
-
-	usleep(100);
-
-	attempts--;
-	if ( 0 >= attempts ) return 0;
-      }
-
-      for ( int i = 0; i<(int)len; i++ ) {
-	buf[i] = rpmsg_queue.front();
-	rpmsg_queue.pop();
-	//UXR_PRINTF("data put in buf:", buf[i]);
-      }
-
-      return len;
+      return 0;
     }
 
     bool RPMsgAgent::recv_message(

@@ -13,7 +13,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include "rsc_table.h"
+#include "uxr/agent/transport/rpmsg/rsc_table.hpp"
 
 #define IPI_CHAN_NUMS 2
 #define IPI_CHAN_SEND 0
@@ -120,14 +120,14 @@ static unsigned long linux_proc_phys_to_offset(struct metal_io_region *io,
 }
 
 static struct metal_io_ops linux_proc_io_ops = {
-	.write = NULL,
-	.read = NULL,
-	.block_read = linux_proc_block_read,
-	.block_write = linux_proc_block_write,
-	.block_set = linux_proc_block_set,
-	.close = NULL,
-	.offset_to_phys = linux_proc_offset_to_phys,
-	.phys_to_offset = linux_proc_phys_to_offset,
+  .read = NULL,
+  .write = NULL,
+  .block_read = linux_proc_block_read,
+  .block_write = linux_proc_block_write,
+  .block_set = linux_proc_block_set,
+  .close = NULL,
+  .offset_to_phys = linux_proc_offset_to_phys,
+  .phys_to_offset = linux_proc_phys_to_offset,
 };
 
 static int sk_unix_client(const char *descr)
@@ -211,7 +211,7 @@ static int event_open(const char *descr)
 static int linux_proc_irq_handler(int vect_id, void *data)
 {
 	char dummy_buf[32];
-	struct vring_ipi_info *ipi = data;
+	struct vring_ipi_info *ipi = (vring_ipi_info *)data;
 
 	read(vect_id, dummy_buf, sizeof(dummy_buf));
 	atomic_flag_clear(&ipi->sync);
@@ -222,7 +222,7 @@ static struct remoteproc *
 linux_proc_init(struct remoteproc *rproc,
 		const struct remoteproc_ops *ops, void *arg)
 {
-	struct remoteproc_priv *prproc = arg;
+        struct remoteproc_priv *prproc = (remoteproc_priv *)arg;
 	struct metal_io_region *io;
 	struct vring_ipi_info *ipi;
 	int ret;
@@ -276,7 +276,7 @@ static void linux_proc_remove(struct remoteproc *rproc)
 
 	if (!rproc)
 		return;
-	prproc = rproc->priv;
+	prproc = (remoteproc_priv *)rproc->priv;
 
 	/* Close IPI */
 	ipi = &prproc->ipi;
@@ -317,7 +317,7 @@ linux_proc_mmap(struct remoteproc *rproc, metal_phys_addr_t *pa,
 
 	if (!rproc)
 		return NULL;
-	prproc = rproc->priv;
+	prproc = (remoteproc_priv *)rproc->priv;
 	mem = &prproc->shm;
 	va = metal_io_phys_to_virt(mem->io, lpa);
 	if (va) {
@@ -337,7 +337,7 @@ static int linux_proc_notify(struct remoteproc *rproc, uint32_t id)
 	(void)id;
 	if (!rproc)
 		return -1;
-	prproc = rproc->priv;
+	prproc = (remoteproc_priv *)rproc->priv;
 	ipi = &prproc->ipi;
 	send(ipi->fd, &dummy, 1, MSG_NOSIGNAL);
 	return 0;
@@ -349,10 +349,13 @@ static const struct remoteproc_ops linux_proc_ops = {
 	.init = linux_proc_init,
 	.remove = linux_proc_remove,
 	.mmap = linux_proc_mmap,
-	.notify = linux_proc_notify,
+	.handle_rsc = NULL,
+	.config = NULL,
 	.start = NULL,
 	.stop = NULL,
 	.shutdown = NULL,
+	.notify = linux_proc_notify,
+	.get_mem = NULL,
 };
 
 /* RPMsg virtio shared buffer pool */
@@ -416,7 +419,7 @@ platform_create_proc(int proc_index, int rsc_index)
 					0, &rproc_inst.rsc_io);
 
 	/* parse resource table to remoteproc */
-	ret = remoteproc_set_rsc_table(&rproc_inst, rsc_table_shm, rsc_size);
+	ret = remoteproc_set_rsc_table(&rproc_inst, (resource_table *)rsc_table_shm, rsc_size);
 	if (ret) {
 		printf("Failed to set resource table to remoteproc\r\n");
 		remoteproc_remove(&rproc_inst);
@@ -463,7 +466,7 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
 			   void (*rst_cb)(struct virtio_device *vdev),
 			   rpmsg_ns_bind_cb ns_bind_cb)
 {
-	struct remoteproc *rproc = platform;
+  struct remoteproc *rproc = (remoteproc *)platform;
 	struct rpmsg_virtio_device *rpmsg_vdev;
 	struct virtio_device *vdev;
 	void *shbuf;
@@ -471,7 +474,7 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
 	int ret;
 
 	/* Setup resource table */
-	rpmsg_vdev = metal_allocate_memory(sizeof(*rpmsg_vdev));
+	rpmsg_vdev = (rpmsg_virtio_device *)metal_allocate_memory(sizeof(*rpmsg_vdev));
 	if (!rpmsg_vdev)
 		return NULL;
 	shbuf_io = remoteproc_get_io_with_pa(rproc, SHARED_BUF_PA);
@@ -510,12 +513,12 @@ err1:
 
 int platform_poll(void *priv)
 {
-	struct remoteproc *rproc = priv;
+        struct remoteproc *rproc = (remoteproc *)priv;
 	struct remoteproc_priv *prproc;
 	struct vring_ipi_info *ipi;
 	unsigned int flags;
 
-	prproc = rproc->priv;
+	prproc = (remoteproc_priv *)rproc->priv;
 	ipi = &prproc->ipi;
 	while(1) {
 		flags = metal_irq_save_disable();
@@ -535,8 +538,8 @@ void platform_release_rpmsg_vdev(struct rpmsg_device *rpdev, void *platform)
 	struct rpmsg_virtio_device *rpvdev;
 	struct remoteproc *rproc;
 
-	rpvdev = metal_container_of(rpdev, struct rpmsg_virtio_device, rdev);
-	rproc = platform;
+	rpvdev = (rpmsg_virtio_device *)metal_container_of(rpdev, struct rpmsg_virtio_device, rdev);
+	rproc = (remoteproc *)platform;
 
 	rpmsg_deinit_vdev(rpvdev);
 	remoteproc_remove_virtio(rproc, rpvdev->vdev);
@@ -544,7 +547,7 @@ void platform_release_rpmsg_vdev(struct rpmsg_device *rpdev, void *platform)
 
 void platform_cleanup(void *platform)
 {
-	struct remoteproc *rproc = platform;
+  struct remoteproc *rproc = (remoteproc *)platform;
 
 	if (rproc)
 		remoteproc_remove(rproc);

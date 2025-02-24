@@ -1,5 +1,5 @@
 #include <openamp/open_amp.h>
-#include "rsc_table.h"
+#include "uxr/agent/transport/rpmsg/rsc_table.hpp"
 
 #define RPMSG_VDEV_DFEATURES        (1 << VIRTIO_RPMSG_F_NS)
 
