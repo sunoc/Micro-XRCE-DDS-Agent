@@ -34,7 +34,6 @@ TermiosRPMsgAgent::~TermiosRPMsgAgent()
     }
 }
 
-
 /*******************************************************************************
 *
 * @brief        This function goal is to send a shutdown package
@@ -65,7 +64,37 @@ bool TermiosRPMsgAgent::init()
 {
     UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
+    void *platform;
+    int argc = 0;
+    char **argv = NULL;
+    struct rpmsg_device *rpdev;
     int ret;
+
+    UXR_PRINTF("openamp lib version: ", openamp_version());
+    UXR_PRINTF("Major: ", openamp_version_major());
+    UXR_PRINTF("Minor: ", openamp_version_minor());
+    UXR_PRINTF("Patch: ", openamp_version_patch());
+
+    UXR_PRINTF("libmetal lib version: ", metal_ver());
+    UXR_PRINTF("Major: ", metal_ver_major());
+    UXR_PRINTF("Minor: ", metal_ver_minor());
+    UXR_PRINTF("Patch: ", metal_ver_patch());
+
+    ret = platform_init(argc, argv, &platform);
+    if (ret) {
+      UXR_ERROR("Failed to initialize platform.", strerror(errno));
+      ret = -1;
+    } else {
+      rpdev = platform_create_rpmsg_vdev(platform, 0,
+					 VIRTIO_DEV_DEVICE,
+					 NULL, NULL);
+      if (!rpdev) {
+	UXR_ERROR("Failed to create rpmsg virtio device.", strerror(errno));
+	ret = -1;
+      } else {
+	UXR_PRINTF("Running application from here", NULL);
+      }
+    }
 
     UXR_PRINTF("RPMsg init is successful.", NULL);
     return true;

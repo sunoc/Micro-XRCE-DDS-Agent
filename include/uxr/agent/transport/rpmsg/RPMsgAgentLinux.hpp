@@ -4,12 +4,16 @@
 #include <uxr/agent/transport/Server.hpp>
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
 #include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
+#include <uxr/agent/transport/rpmsg/platform_info.hpp>
 
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
 
-#include <openamp/rpmsg.h>
+#include <openamp/open_amp.h>
+#include <openamp/version.h>
+#include <metal/alloc.h>
+#include <metal/version.h>
 
 /* RPMsg max payload size values*/
 #define RPMSG_SERV_NAME "rpmsg-client-sample"
