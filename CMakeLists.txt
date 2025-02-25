@@ -330,6 +330,7 @@ if(UAGENT_BUILD_EXECUTABLE)
             ${PROJECT_NAME}
             $<$<BOOL:$<PLATFORM_ID:Linux>>:rt>
             $<$<BOOL:$<PLATFORM_ID:Linux>>:dl>
+	    open_amp
         )
 
     set_target_properties(MicroXRCEAgent PROPERTIES
