@@ -170,9 +170,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR
         src/cpp/transport/serial/PseudoTerminalAgentLinux.cpp
 	src/cpp/transport/rpmsg/RPMsgAgentLinux.cpp
 	src/cpp/transport/rpmsg/TermiosAgentLinux.cpp
-	src/cpp/transport/rpmsg/helper.cpp
-	src/cpp/transport/rpmsg/platform_info.cpp
-	src/cpp/transport/rpmsg/rsc_table.cpp
         $<$<BOOL:${UAGENT_SOCKETCAN_PROFILE}>:src/cpp/transport/can/CanAgentLinux.cpp>
         $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServerLinux.cpp>
         $<$<BOOL:${UAGENT_P2P_PROFILE}>:src/cpp/transport/p2p/AgentDiscovererLinux.cpp>
@@ -212,6 +209,9 @@ set(SRCS
     src/cpp/transport/Server.cpp
     src/cpp/transport/stream_framing/StreamFramingProtocol.cpp
     src/cpp/transport/custom/CustomAgent.cpp
+    src/cpp/transport/rpmsg/helper.cpp
+    src/cpp/transport/rpmsg/platform_info.cpp
+    src/cpp/transport/rpmsg/rsc_table.cpp
     ${TRANSPORT_SRCS}
     $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServer.cpp>
     $<$<BOOL:${UAGENT_FAST_PROFILE}>:src/cpp/types/TopicPubSubType.cpp>
