@@ -16,7 +16,7 @@
 #include <metal/version.h>
 
 /* RPMsg max payload size values*/
-#define RPMSG_SERV_NAME "rpmsg-client-sample"
+#define RPMSG_SERVICE_NAME "rpmsg-client-sample"
 #define SHUTDOWN_MSG 0xEF56A55A
 
 /* message printing utils */

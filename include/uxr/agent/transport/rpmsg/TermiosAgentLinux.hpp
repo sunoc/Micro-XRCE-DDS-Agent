@@ -6,38 +6,49 @@
 #include <termios.h>
 
 namespace eprosima {
-namespace uxr {
+  namespace uxr {
 
-class TermiosRPMsgAgent : public RPMsgAgent
-{
-public:
-    TermiosRPMsgAgent(
-            char const * dev,
-            int open_flags,
-            termios const & termios_attrs,
-            uint8_t addr,
-            Middleware::Kind middleware_kind);
+    class TermiosRPMsgAgent : public RPMsgAgent
+    {
+    public:
+      TermiosRPMsgAgent(
+			char const * dev,
+			int open_flags,
+			termios const & termios_attrs,
+			uint8_t addr,
+			Middleware::Kind middleware_kind);
 
-    ~TermiosRPMsgAgent();
+      ~TermiosRPMsgAgent();
 
-    int getfd() { return poll_fd_.fd; };
+      int getfd() { return poll_fd_.fd; };
 
-    void send_shutdown(int filedescriptor);
+      void send_shutdown(int filedescriptor);
 
-private:
+      static int rpmsg_endpoint_cb(struct rpmsg_endpoint *ept,
+			    void *data,
+			    size_t len,
+			    uint32_t src,
+			    void *priv);
 
-    bool init() final;
-    bool fini() final;
-    bool handle_error(
-            TransportRc transport_rc) final;
+      static void rpmsg_service_unbind(struct rpmsg_endpoint *ept);
 
-private:
-    const std::string dev_;
-    const int open_flags_;
-    const termios termios_attrs_;
-};
+    private:
 
-} // namespace uxr
+      bool init() final;
+      bool fini() final;
+      bool handle_error(
+			TransportRc transport_rc) final;
+
+    private:
+      const std::string dev_;
+      const int open_flags_;
+      const termios termios_attrs_;
+
+      static struct rpmsg_endpoint lept;
+      static int shutdown_req;
+    };
+
+  } // namespace uxr
 } // namespace eprosima
 
 #endif // UXR_AGENT_TRANSPORT_RPMSG_TERMIOSAGENTLINUX_HPP_
