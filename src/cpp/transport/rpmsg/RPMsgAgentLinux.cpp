@@ -22,25 +22,35 @@ namespace eprosima {
       , charfd{}
     {}
 
+    /**************************************************************************
+     *
+     * @brief        Basic usage of the rpmsg_send function directly.
+     *
+     **************************************************************************/
     ssize_t RPMsgAgent::write_data(
 				    uint8_t* buf,
 				    size_t len,
 				    TransportRc& transport_rc)
     {
-      size_t rv = 0;
-      ssize_t bytes_written = ::write(poll_fd_.fd, buf, len);
+      size_t ret = 0;
+      ssize_t bytes_written = rpmsg_send(&lept, buf, len);
       if (0 < bytes_written)
       {
-          rv = size_t(bytes_written);
+          ret = size_t(bytes_written);
       }
       else
       {
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
       }
-      return rv;
+      return ret;
     }
 
+    /**************************************************************************
+     *
+     * @brief        Access the buffer populated by the rpmsg calllback.
+     *
+     **************************************************************************/
     ssize_t RPMsgAgent::read_data(
 				   uint8_t* buf,
 				   size_t len,
@@ -58,34 +68,26 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
-      bool rv = false;
+      bool ret = false;
       uint8_t remote_addr = 0x00;
       ssize_t bytes_read = 0;
 
-      //UXR_PRINTF("Entering method", NULL);
-
       do
 	{
-	  /*
-	    Something's wrong, I can feel it.
-	    There is a problem with the stream framing protocol, where
-	    where the read_frames_msg is defined
-	  */
-	  //UXR_PRINTF("Read data loop", NULL);
 	  bytes_read = framing_io_.read_framed_msg(
-						   buffer_, SERVER_BUFFER_SIZE, remote_addr, timeout, transport_rc);
-	  //UXR_PRINTF("Timeout:", timeout);
-	  //UXR_PRINTF("bytes_read:", bytes_read);
+						   buffer_,
+						   SERVER_BUFFER_SIZE,
+						   remote_addr,
+						   timeout,
+						   transport_rc);
 	}
       while ((0 == bytes_read) && (0 < timeout));
-
-      //UXR_PRINTF("BP1", NULL);
 
       if (0 < bytes_read)
 	{
 	  input_packet.message.reset(new InputMessage(buffer_, static_cast<size_t>(bytes_read)));
 	  input_packet.source = RPMsgEndPoint(remote_addr);
-	  rv = true;
+	  ret = true;
 
 	  //UXR_PRINTF("BP2", NULL);
 
@@ -99,7 +101,7 @@ namespace eprosima {
 				    input_packet.message->get_len());
 	    }
 	}
-      return rv;
+      return ret;
     }
 
     bool RPMsgAgent::send_message(
@@ -109,7 +111,7 @@ namespace eprosima {
 
       //UXR_PRINTF("Entering method", NULL);
 
-      bool rv = false;
+      bool ret = false;
       ssize_t bytes_written =
 	framing_io_.write_framed_msg(
 				     output_packet.message->get_buf(),
@@ -119,7 +121,7 @@ namespace eprosima {
       if ((0 < bytes_written) && (
 				  static_cast<size_t>(bytes_written) == output_packet.message->get_len()))
 	{
-	  rv = true;
+	  ret = true;
 
 	  uint32_t raw_client_key;
 	  if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination, raw_client_key))
@@ -131,7 +133,7 @@ namespace eprosima {
 				    output_packet.message->get_len());
 	    }
 	}
-      return rv;
+      return ret;
     }
 
   } // namespace uxr

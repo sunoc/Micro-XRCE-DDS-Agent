@@ -34,10 +34,11 @@ namespace eprosima {
 	}
     }
 
-    struct rpmsg_endpoint TermiosRPMsgAgent::lept;
-    int TermiosRPMsgAgent::shutdown_req = 0;
+    /* To make the linker happy, for some reason... */
+    struct rpmsg_endpoint RPMsgAgent::lept;
+    int RPMsgAgent::shutdown_req = 0;
 
-    /*******************************************************************************
+    /**************************************************************************
      *
      * @brief        This function goal is to send a shutdown package
      *               to the micro-ROS client in order to stop it.
@@ -48,7 +49,7 @@ namespace eprosima {
      *
      * @note		None.
      *
-     *******************************************************************************/
+     **************************************************************************/
     void TermiosRPMsgAgent::send_shutdown(int filedescriptor)
     {
       ssize_t bytes_sent = -1;
@@ -130,8 +131,8 @@ namespace eprosima {
 	  }
 
 	  UXR_PRINTF("Successfully created rpmsg endpoint.", NULL);
-	  UXR_PRINTF("RPMsg device TX buffer size: ", rpmsg_get_tx_buffer_size(&lept));
-	  UXR_PRINTF("RPMsg device RX buffer size: ", rpmsg_get_rx_buffer_size(&lept));
+	  UXR_PRINTF("RPMsg TX buffer size: ", rpmsg_get_tx_buffer_size(&lept));
+	  UXR_PRINTF("RPMsg RX buffer size: ", rpmsg_get_rx_buffer_size(&lept));
 	}
       }
 
@@ -144,7 +145,7 @@ namespace eprosima {
 
       UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent FINI function.", NULL);
 
-      UXR_PRINTF("Everything was freed and close cleanly. Returning true.", NULL);
+      UXR_PRINTF("Everything was freed and close cleanly.", NULL);
       return true;
     }
 

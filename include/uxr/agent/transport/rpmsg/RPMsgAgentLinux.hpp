@@ -6,6 +6,9 @@
 #include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
 #include <uxr/agent/transport/rpmsg/platform_info.hpp>
 
+#include <iostream>
+#include <string>
+
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
@@ -18,6 +21,8 @@
 /* RPMsg max payload size values*/
 #define RPMSG_SERVICE_NAME "rpmsg-client-sample"
 #define SHUTDOWN_MSG 0xEF56A55A
+
+#define RPMSG_STBUF_SIZE 2048
 
 /* message printing utils */
 #define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
@@ -41,6 +46,12 @@ namespace eprosima {
 #ifdef UAGENT_P2P_PROFILE
       bool has_p2p() final { return false; }
 #endif
+
+      static struct rpmsg_endpoint lept;
+      static int shutdown_req;
+
+      /* Related to the buffer between the cb and the read function */
+      static char buffer[RPMSG_STBUF_SIZE];
 
     private:
 

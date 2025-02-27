@@ -43,9 +43,6 @@ namespace eprosima {
       const std::string dev_;
       const int open_flags_;
       const termios termios_attrs_;
-
-      static struct rpmsg_endpoint lept;
-      static int shutdown_req;
     };
 
   } // namespace uxr
