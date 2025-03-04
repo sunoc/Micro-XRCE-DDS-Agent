@@ -4,7 +4,10 @@
 #include <uxr/agent/transport/Server.hpp>
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
 #include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
-#include <uxr/agent/transport/rpmsg/platform_info.hpp>
+
+extern "C" {
+#include <uxr/agent/transport/rpmsg/platform_info.h>
+}
 
 #include <iostream>
 #include <string>

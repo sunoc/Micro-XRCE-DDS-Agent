@@ -209,9 +209,9 @@ set(SRCS
     src/cpp/transport/Server.cpp
     src/cpp/transport/stream_framing/StreamFramingProtocol.cpp
     src/cpp/transport/custom/CustomAgent.cpp
-    src/cpp/transport/rpmsg/helper.cpp
-    src/cpp/transport/rpmsg/platform_info.cpp
-    src/cpp/transport/rpmsg/rsc_table.cpp
+    src/cpp/transport/rpmsg/helper.c
+    src/cpp/transport/rpmsg/platform_info.c
+    src/cpp/transport/rpmsg/zynqmp_linux_r5_proc.c
     ${TRANSPORT_SRCS}
     $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServer.cpp>
     $<$<BOOL:${UAGENT_FAST_PROFILE}>:src/cpp/types/TopicPubSubType.cpp>

@@ -89,7 +89,6 @@ namespace eprosima {
 	  input_packet.source = RPMsgEndPoint(remote_addr);
 	  ret = true;
 
-	  //UXR_PRINTF("BP2", NULL);
 
 	  uint32_t raw_client_key;
 	  if (Server<RPMsgEndPoint>::get_client_key(input_packet.source, raw_client_key))
@@ -108,9 +107,6 @@ namespace eprosima {
 				   OutputPacket<RPMsgEndPoint> output_packet,
 				   TransportRc& transport_rc)
     {
-
-      //UXR_PRINTF("Entering method", NULL);
-
       bool ret = false;
       ssize_t bytes_written =
 	framing_io_.write_framed_msg(

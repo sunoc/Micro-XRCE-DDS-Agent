@@ -1,3 +1,22 @@
+/*
+ * Copyright (c) 2014, Mentor Graphics Corporation
+ * All rights reserved.
+ * Copyright (c) 2017 Xilinx, Inc.
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/**************************************************************************
+ * FILE NAME
+ *
+ *    platform_info.c
+ *
+ * DESCRIPTION
+ *
+ *    This file define Xilinx ZynqMP R5 to A53 platform specific
+ *    remoteproc implementation.
+ *
+ **************************************************************************/
 #include <metal/alloc.h>
 #include <metal/atomic.h>
 #include <metal/io.h>
@@ -10,7 +29,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/un.h>
-#include <uxr/agent/transport/rpmsg/platform_info.hpp>
+#include <uxr/agent/transport/rpmsg/platform_info.h>
 
 /* IPI REGs OFFSET */
 #define IPI_TRIG_OFFSET 0x00000000 /* IPI trigger register offset */
@@ -20,6 +39,7 @@
 #define IPI_IER_OFFSET  0x00000018 /* IPI interrupt enable register offset */
 #define IPI_IDR_OFFSET  0x0000001C /* IPI interrupt disable register offset */
 
+#ifndef RPMSG_NO_IPI
 static int zynqmp_linux_r5_proc_irq_handler(int vect_id, void *data)
 {
 	struct remoteproc *rproc = data;
@@ -40,6 +60,7 @@ static int zynqmp_linux_r5_proc_irq_handler(int vect_id, void *data)
 	}
 	return METAL_IRQ_NOT_HANDLED;
 }
+#endif /* !RPMSG_NO_IPI */
 
 static struct remoteproc *
 zynqmp_linux_r5_proc_init(struct remoteproc *rproc,
@@ -47,7 +68,9 @@ zynqmp_linux_r5_proc_init(struct remoteproc *rproc,
 {
 	struct remoteproc_priv *prproc = arg;
 	struct metal_device *dev;
+#ifndef RPMSG_NO_IPI
 	unsigned int irq_vect;
+#endif /* !RPMSG_NO_IPI */
 	metal_phys_addr_t mem_pa;
 	int ret;
 
@@ -70,6 +93,25 @@ zynqmp_linux_r5_proc_init(struct remoteproc *rproc,
 	if (!prproc->shm_io)
 		goto err2;
 
+#ifdef RPMSG_NO_IPI
+	/* Get poll shared memory device */
+	ret = metal_device_open(prproc->shm_poll_bus_name,
+				prproc->shm_poll_name,
+				&dev);
+	if (ret) {
+		fprintf(stderr,
+			"ERROR: failed to open shm poll device: %d.\r\n",
+			ret);
+		goto err1;
+	}
+	printf("Successfully open shm poll device.\r\n");
+	prproc->shm_poll_dev = dev;
+	prproc->shm_poll_io = metal_device_io_region(dev, 0);
+	if (!prproc->shm_poll_io)
+		goto err2;
+	metal_io_write32(prproc->shm_poll_io, 0, !POLL_STOP);
+#endif /* RPMSG_NO_IPI */
+
 	mem_pa = metal_io_phys(prproc->shm_io, 0);
 	remoteproc_init_mem(&prproc->shm_mem, "shm", mem_pa, mem_pa,
 			    metal_io_region_size(prproc->shm_io),
@@ -77,6 +119,7 @@ zynqmp_linux_r5_proc_init(struct remoteproc *rproc,
 	remoteproc_add_mem(rproc, &prproc->shm_mem);
 	printf("Successfully added shared memory\r\n");
 	/* Get IPI device */
+#ifndef RPMSG_NO_IPI
 	ret = metal_device_open(prproc->ipi_bus_name, prproc->ipi_name,
 				&dev);
 	if (ret) {
@@ -98,11 +141,13 @@ zynqmp_linux_r5_proc_init(struct remoteproc *rproc,
 			 prproc->ipi_chn_mask);
 	printf("Successfully initialized Linux r5 remoteproc.\r\n");
 	return rproc;
-
+#endif /* !RPMSG_NO_IPI */
 	printf("Successfully initialized Linux r5 remoteproc.\r\n");
 	return rproc;
+#ifndef RPMSG_NO_IPI
 err3:
 	metal_device_close(prproc->ipi_dev);
+#endif /* !RPMSG_NO_IPI */
 err2:
 	metal_device_close(prproc->shm_dev);
 err1:
@@ -112,11 +157,14 @@ err1:
 static void zynqmp_linux_r5_proc_remove(struct remoteproc *rproc)
 {
 	struct remoteproc_priv *prproc;
+#ifndef RPMSG_NO_IPI
 	struct metal_device *dev;
+#endif /* !RPMSG_NO_IPI */
 
 	if (!rproc)
 		return;
 	prproc = rproc->priv;
+#ifndef RPMSG_NO_IPI
 	metal_io_write32(prproc->ipi_io, IPI_IDR_OFFSET, prproc->ipi_chn_mask);
 	dev = prproc->ipi_dev;
 	if (dev) {
@@ -124,6 +172,7 @@ static void zynqmp_linux_r5_proc_remove(struct remoteproc *rproc)
 		metal_irq_unregister((uintptr_t)dev->irq_info);
 		metal_device_close(dev);
 	}
+#endif /* !RPMSG_NO_IPI */
 	if (prproc->shm_dev)
 		metal_device_close(prproc->shm_dev);
 }
@@ -171,8 +220,12 @@ static int zynqmp_linux_r5_proc_notify(struct remoteproc *rproc, uint32_t id)
 		return -1;
 	prproc = rproc->priv;
 
+#ifdef RPMSG_NO_IPI
+	metal_io_write32(prproc->shm_poll_io, 0, POLL_STOP);
+#else /* RPMSG_NO_IPI */
 	metal_io_write32(prproc->ipi_io, IPI_TRIG_OFFSET,
 			 prproc->ipi_chn_mask);
+#endif /* !RPMSG_NO_IPI */
 	return 0;
 }
 

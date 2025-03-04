@@ -79,6 +79,9 @@ namespace eprosima {
       }
 
       /* Put the data in a buffer for the Agent read methode */
+      UXR_PRINTF("Received len: ", len);
+      UXR_PRINTF("Buffer addr *data: ", data);
+
       return RPMSG_SUCCESS;
     }
 
