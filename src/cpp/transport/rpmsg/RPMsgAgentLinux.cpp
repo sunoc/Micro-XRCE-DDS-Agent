@@ -62,6 +62,9 @@ namespace eprosima {
       (void)timeout;
       (void)transport_rc;
 
+      UXR_ERROR("Entered the read functio! What a mistake!", strerror(errno));
+      sleep(2);
+
       // int rpmsg_buffer_len = 0;
       // int attempts = 10;
 

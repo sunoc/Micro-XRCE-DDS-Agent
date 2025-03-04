@@ -50,6 +50,7 @@ namespace eprosima {
       bool has_p2p() final { return false; }
 #endif
 
+      static char * i_payload;
       static void *platform;
       static struct rpmsg_device *rpdev;
       static struct rpmsg_endpoint lept;
