@@ -109,11 +109,13 @@ namespace eprosima {
       UXR_PRINTF("Minor: ", metal_ver_minor());
       UXR_PRINTF("Patch: ", metal_ver_patch());
 
+      UXR_PRINTF("Initializing the platform...", NULL);
       ret = platform_init(argc, argv, &platform);
       if (ret) {
 	UXR_ERROR("Failed to initialize platform.", strerror(errno));
 	ret = -1;
       } else {
+	UXR_PRINTF("Creating vdev...", NULL);
 	rpdev = platform_create_rpmsg_vdev(platform, 0,
 					   VIRTIO_DEV_DEVICE,
 					   NULL, NULL);
@@ -121,6 +123,7 @@ namespace eprosima {
 	  UXR_ERROR("Failed to create rpmsg virtio device.", strerror(errno));
 	  ret = -1;
 	} else {
+	  	UXR_PRINTF("Creating ept...", NULL);
 	  ret = rpmsg_create_ept(&lept, rpdev, RPMSG_SERVICE_NAME,
 				 RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
 				 rpmsg_endpoint_cb,

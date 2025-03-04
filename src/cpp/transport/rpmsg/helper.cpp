@@ -1,3 +1,8 @@
+/*
+ * From open-amp's
+ * system/linux/machine/zynqmp/helper.c
+ *
+ */
 #include <string.h>
 #include <stdio.h>
 #include <metal/sys.h>
