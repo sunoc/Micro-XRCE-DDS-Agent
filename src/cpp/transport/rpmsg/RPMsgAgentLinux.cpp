@@ -57,6 +57,11 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
+      (void)buf;
+      (void)len;
+      (void)timeout;
+      (void)transport_rc;
+
       // int rpmsg_buffer_len = 0;
       // int attempts = 10;
 

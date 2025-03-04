@@ -22,7 +22,7 @@ extern "C" {
 #include <metal/version.h>
 
 /* RPMsg max payload size values*/
-#define RPMSG_SERVICE_NAME "rpmsg-client-sample"
+#define RPMSG_SERVICE_NAME         "rpmsg-openamp-demo-channel"
 #define SHUTDOWN_MSG 0xEF56A55A
 
 #define RPMSG_STBUF_SIZE 2048
@@ -50,6 +50,8 @@ namespace eprosima {
       bool has_p2p() final { return false; }
 #endif
 
+      static void *platform;
+      static struct rpmsg_device *rpdev;
       static struct rpmsg_endpoint lept;
       static int shutdown_req;
 

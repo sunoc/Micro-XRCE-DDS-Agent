@@ -35,6 +35,8 @@ namespace eprosima {
     }
 
     /* To make the linker happy, for some reason... */
+    void * RPMsgAgent::platform;
+    struct rpmsg_device * RPMsgAgent::rpdev;
     struct rpmsg_endpoint RPMsgAgent::lept;
     int RPMsgAgent::shutdown_req = 0;
 
@@ -68,6 +70,7 @@ namespace eprosima {
 					     void *data, size_t len,
 					     uint32_t src, void *priv)
     {
+      (void)ept;
       (void)priv;
       (void)src;
 
@@ -96,10 +99,8 @@ namespace eprosima {
     {
       UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
 
-      void *platform;
       int argc = 0;
       char **argv = NULL;
-      struct rpmsg_device *rpdev;
       int ret;
 
       UXR_PRINTF("openamp lib version: ", openamp_version());
@@ -129,8 +130,8 @@ namespace eprosima {
 	  	UXR_PRINTF("Creating ept...", NULL);
 	  ret = rpmsg_create_ept(&lept, rpdev, RPMSG_SERVICE_NAME,
 				 RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
-				 rpmsg_endpoint_cb,
-				 rpmsg_service_unbind);
+				 TermiosRPMsgAgent::rpmsg_endpoint_cb,
+				 TermiosRPMsgAgent::rpmsg_service_unbind);
 	  if (ret) {
 	    UXR_ERROR("Failed to create endpoint.", strerror(errno));
 	    return -1;
