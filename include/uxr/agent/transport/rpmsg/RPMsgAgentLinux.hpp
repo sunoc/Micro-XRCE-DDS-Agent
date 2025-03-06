@@ -5,8 +5,13 @@
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
 #include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
 
+/*
+ * These C header must stay this way to keep compatibility
+ * with the upstream open-amp.
+ */
 extern "C" {
 #include <uxr/agent/transport/rpmsg/platform_info.h>
+#include <uxr/agent/transport/rpmsg/helper.h>
 }
 
 #include <iostream>
@@ -50,11 +55,11 @@ namespace eprosima {
       bool has_p2p() final { return false; }
 #endif
 
-      static char * i_payload;
-      static void *platform;
-      static struct rpmsg_device *rpdev;
-      static struct rpmsg_endpoint lept;
-      static int shutdown_req;
+      char * i_payload;
+      struct rpmsg_endpoint lept;
+      int shutdown_req;
+      void *platform;
+      struct rpmsg_device *rpdev;
 
       /* Related to the buffer between the cb and the read function */
       static char buffer[RPMSG_STBUF_SIZE];

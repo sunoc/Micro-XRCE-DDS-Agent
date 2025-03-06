@@ -211,6 +211,7 @@ set(SRCS
     src/cpp/transport/custom/CustomAgent.cpp
     src/cpp/transport/rpmsg/helper.c
     src/cpp/transport/rpmsg/platform_info.c
+    src/cpp/transport/rpmsg/wrappers.cpp
     src/cpp/transport/rpmsg/zynqmp_linux_r5_proc.c
     ${TRANSPORT_SRCS}
     $<$<BOOL:${UAGENT_DISCOVERY_PROFILE}>:src/cpp/transport/discovery/DiscoveryServer.cpp>

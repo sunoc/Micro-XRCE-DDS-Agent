@@ -5,9 +5,6 @@
 
 #include <uxr/agent/transport/rpmsg/TermiosAgentLinux.hpp>
 
-#include <fcntl.h>
-#include <unistd.h>
-
 namespace eprosima {
   namespace uxr {
 
@@ -38,13 +35,6 @@ namespace eprosima {
 				 e.what());
 	}
     }
-
-    /* To make the linker happy, for some reason... */
-    char * RPMsgAgent::i_payload;
-    void * RPMsgAgent::platform;
-    struct rpmsg_device * RPMsgAgent::rpdev;
-    struct rpmsg_endpoint RPMsgAgent::lept;
-    int RPMsgAgent::shutdown_req = 0;
 
     /**************************************************************************
      *
@@ -79,6 +69,7 @@ namespace eprosima {
       (void)ept;
       (void)priv;
       (void)src;
+      UXR_PRINTF("Callback is reached", NULL);
 
       /* On reception of a shutdown we signal the application to terminate */
       if ((*(unsigned int *)data) == SHUTDOWN_MSG) {
@@ -101,11 +92,22 @@ namespace eprosima {
       shutdown_req = 1;
     }
 
+    void TermiosRPMsgAgent::rpmsg_name_service_bind_cb(struct rpmsg_device *rdev,
+					 const char *name, uint32_t dest)
+    {
+      UXR_PRINTF("new endpoint notification is received.", NULL);
+      if (strcmp(name, RPMSG_SERVICE_NAME))
+	UXR_ERROR("Unexpected name service:", name);
+      else
+	(void)rpmsg_create_ept(&lept, rdev, RPMSG_SERVICE_NAME,
+			       RPMSG_ADDR_ANY, dest,
+			       (rpmsg_ept_cb)rpmsg_endpoint_cb_wrap,
+			       (rpmsg_ns_unbind_cb)rpmsg_service_unbind_wrap);
+    }
+
     bool TermiosRPMsgAgent::init()
     {
-      UXR_PRINTF("RPMsg XRCE-DDS INIT", NULL);
-
-      int argc = 0;
+      int argc = 1;
       char **argv = NULL;
       int ret, max_size;
 
@@ -124,54 +126,55 @@ namespace eprosima {
       if (ret)
 	{
 	  UXR_ERROR("Failed to initialize platform.", strerror(errno));
-	  ret = -1;
+	  return false;
 	}
-      else
+
+      UXR_PRINTF("Creating vdev...", NULL);
+      rpdev = platform_create_rpmsg_vdev(platform, 0,
+					 VIRTIO_DEV_DEVICE,
+					 NULL,
+					 (rpmsg_ns_bind_cb)rpmsg_name_service_bind_cb_wrap);
+      if (!rpdev)
 	{
-	  UXR_PRINTF("Creating vdev...", NULL);
-	  rpdev = platform_create_rpmsg_vdev(platform, 0,
-					     VIRTIO_DEV_DEVICE,
-					     NULL, NULL);
-	  if (!rpdev)
-	    {
-	      UXR_ERROR("Failed to create rpmsg virtio device.", strerror(errno));
-	      ret = -1;
-	    }
-	  else
-	    {
-	      UXR_PRINTF("Try creating ept...", NULL);
-	      ret = rpmsg_create_ept(&lept, rpdev, RPMSG_SERVICE_NAME,
-				     RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
-				     rpmsg_endpoint_cb, rpmsg_service_unbind);
-	      if (ret)
-		{
-		  UXR_ERROR("Failed to create endpoint.", strerror(errno));
-		  return -1;
-		}
-
-	      max_size = rpmsg_get_tx_buffer_size(&lept);
-	      if (max_size <= 0) {
-		UXR_ERROR("No available buffer size.", strerror(errno));
-		rpmsg_destroy_ept(&lept);
-		return -1;
-	      }
-	      i_payload = (char *)metal_allocate_memory(max_size);
-
-	      if (!i_payload) {
-		UXR_ERROR("memory allocation failed.", strerror(errno));
-		rpmsg_destroy_ept(&lept);
-		return -1;
-	      }
-
-	      UXR_PRINTF("RPMsg device TX buffer size: ", rpmsg_get_tx_buffer_size(&lept));
-	      UXR_PRINTF("RPMsg device RX buffer size: ", rpmsg_get_rx_buffer_size(&lept));
-
-	      while (!is_rpmsg_ept_ready(&lept))
-		platform_poll(&platform);
-
-	      UXR_PRINTF("RPMSG endpoint is binded with remote.", NULL);
-	    }
+	  UXR_ERROR("Failed to create rpmsg virtio device.", strerror(errno));
+	  return false;
 	}
+
+      UXR_PRINTF("Try creating ept...", NULL);
+      ret = rpmsg_create_ept(&lept, rpdev, RPMSG_SERVICE_NAME,
+			     RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
+			     (rpmsg_ept_cb)rpmsg_endpoint_cb_wrap,
+			     (rpmsg_ns_unbind_cb)rpmsg_service_unbind_wrap);
+
+      if (ret)
+	{
+	  UXR_ERROR("Failed to create endpoint.", strerror(errno));
+	  return false;
+	}
+      else UXR_PRINTF("Success creating ept!", ret);
+
+      max_size = rpmsg_get_tx_buffer_size(&lept);
+      if (max_size <= 0) {
+	UXR_ERROR("No available buffer size.", strerror(errno));
+	rpmsg_destroy_ept(&lept);
+	return false;
+      }
+      i_payload = (char *)metal_allocate_memory(max_size);
+
+      if (!i_payload) {
+	UXR_ERROR("memory allocation failed.", strerror(errno));
+	rpmsg_destroy_ept(&lept);
+	return false;
+      }
+
+      UXR_PRINTF("RPMsg device TX buffer size: ", rpmsg_get_tx_buffer_size(&lept));
+      UXR_PRINTF("RPMsg device RX buffer size: ", rpmsg_get_rx_buffer_size(&lept));
+
+      while (!is_rpmsg_ept_ready(&lept))
+	platform_poll(&platform);
+
+      UXR_PRINTF("RPMSG endpoint is binded with remote.", NULL);
+
 
       UXR_PRINTF("RPMsg init is successful.", NULL);
       return true;

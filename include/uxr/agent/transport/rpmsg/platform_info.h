@@ -47,9 +47,6 @@ struct remoteproc_priv {
 #define POLL_STOP 0x1U
 #endif /* RPMSG_NO_IPI */
 
-#if defined __cplusplus
-}
-#endif
 
 /**
  * platform_init - initialize the platform
@@ -108,5 +105,7 @@ void platform_release_rpmsg_vdev(struct rpmsg_device *rpdev, void *platform);
  */
 void platform_cleanup(void *platform);
 
-
+#if defined __cplusplus
+}
+#endif
 #endif /* PLATFORM_INFO_H */

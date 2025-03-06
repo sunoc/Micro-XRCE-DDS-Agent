@@ -10,6 +10,9 @@
 #include <stdio.h>
 #include <metal/sys.h>
 
+/*
+ * Imported helper functions.
+ */
 int init_system()
 {
 	struct metal_init_params metal_param = METAL_INIT_DEFAULTS;
