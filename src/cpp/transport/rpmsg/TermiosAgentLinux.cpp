@@ -171,7 +171,7 @@ namespace eprosima {
       UXR_PRINTF("RPMsg device RX buffer size: ", rpmsg_get_rx_buffer_size(&lept));
 
       while (!is_rpmsg_ept_ready(&lept))
-	platform_poll(&platform);
+	platform_poll(platform);
 
       UXR_PRINTF("RPMSG endpoint is binded with remote.", NULL);
 
