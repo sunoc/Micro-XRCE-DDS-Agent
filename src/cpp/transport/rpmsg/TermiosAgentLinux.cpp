@@ -131,7 +131,7 @@ namespace eprosima {
 
       UXR_PRINTF("Creating vdev...", NULL);
       rpdev = platform_create_rpmsg_vdev(platform, 0,
-					 VIRTIO_DEV_DEVICE,
+					 VIRTIO_DEV_DRIVER,
 					 NULL,
 					 (rpmsg_ns_bind_cb)rpmsg_name_service_bind_cb_wrap);
       if (!rpdev)
