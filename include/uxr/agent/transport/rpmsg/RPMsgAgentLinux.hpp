@@ -21,6 +21,7 @@ extern "C" {
 #include <cstddef>
 #include <sys/poll.h>
 
+#include <openamp/virtio.h>
 #include <openamp/open_amp.h>
 #include <openamp/version.h>
 #include <metal/alloc.h>
