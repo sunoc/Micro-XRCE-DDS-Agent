@@ -1,22 +1,6 @@
 /*
- * Copyright (c) 2014, Mentor Graphics Corporation
- * All rights reserved.
- * Copyright (c) 2017 Xilinx, Inc.
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Imported zynqmp functions from open-amp.
  */
-
-/**************************************************************************
- * FILE NAME
- *
- *    platform_info.c
- *
- * DESCRIPTION
- *
- *    This file define Xilinx ZynqMP R5 to A53 platform specific
- *    remoteproc implementation.
- *
- **************************************************************************/
 #include <metal/alloc.h>
 #include <metal/atomic.h>
 #include <metal/io.h>

@@ -1,22 +1,6 @@
 /*
- * Copyright (c) 2014, Mentor Graphics Corporation
- * All rights reserved.
- * Copyright (c) 2017 Xilinx, Inc.
- *
- * SPDX-License-Identifier: BSD-3-Clause
+ * Imported platform functions and configurations from open-amp.
  */
-
-/**************************************************************************
- * FILE NAME
- *
- *       platform_info.c
- *
- * DESCRIPTION
- *
- *       This file define platform specific data and implements APIs to set
- *       platform specific information for OpenAMP.
- *
- **************************************************************************/
 #include <metal/alloc.h>
 #include <metal/atomic.h>
 #include <metal/io.h>
@@ -36,11 +20,9 @@
 			       * one CPU in the example. We set the CPU
 			       * index to 0.
 			       */
-
 #ifndef IPI_CHN_BITMASK
 #define IPI_CHN_BITMASK	    0x00000100
 #endif /* !IPI_CHN_BITMASK */
-
 #ifndef IPI_DEV_NAME
 #define IPI_DEV_NAME	    "ff340000.ipi"
 #endif /* !IPI_DEV_NAME */
@@ -48,27 +30,29 @@
 #define DEV_BUS_NAME        "platform" /* device bus name. "platform" bus
                                         * is used in Linux kernel for generic
 					* devices */
-
+/* libmetal devices names used in the examples.
+ * They are platform devices, you find them in Linux sysfs
+ * sys/bus/platform/devices */
 #ifndef SHM_DEV_NAME
 #define SHM_DEV_NAME        "3ed20000.shm" /* shared device name */
 #endif /* SHM_DEV_NAME */
 #ifndef RSC_MEM_PA
-#define RSC_MEM_PA          0x3ED20000UL  /* Resource table location */
+#define RSC_MEM_PA          0x3ED20000UL
 #endif /* !RSC_MEM_PA */
 #ifndef RSC_MEM_SIZE
-#define RSC_MEM_SIZE        0x140000UL      /* Resource table size */
+#define RSC_MEM_SIZE        0x2000UL
 #endif /* !RSC_MEM_SIZE */
 #ifndef VRING_MEM_PA
-#define VRING_MEM_PA        0x3ED40000UL  /* Vring memory location */
+#define VRING_MEM_PA        0x3ED40000UL
 #endif /* !VRING_MEM_PA */
 #ifndef VRING_MEM_SIZE
-#define VRING_MEM_SIZE      0x8000UL      /* Vring size */
+#define VRING_MEM_SIZE      0x8000UL
 #endif /* !VRING_MEM_SIZE */
 #ifndef SHARED_BUF_PA
-#define SHARED_BUF_PA       0x3ED48000UL  /* shared buffer location */
+#define SHARED_BUF_PA       0x3ED48000UL
 #endif /* !SHARED_BUF_PA */
 #ifndef SHARED_BUF_SIZE
-#define SHARED_BUF_SIZE     0x40000UL     /* shared buffer size */
+#define SHARED_BUF_SIZE     0x40000UL
 #endif /* !SHARED_BUF_SIZE */
 
 struct remoteproc_priv rproc_priv = {
