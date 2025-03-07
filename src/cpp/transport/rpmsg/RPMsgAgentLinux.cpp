@@ -33,7 +33,8 @@ namespace eprosima {
 				    TransportRc& transport_rc)
     {
       size_t ret = 0;
-      ssize_t bytes_written = rpmsg_send(&lept, buf, len);
+      UXR_PRINTF("Entered the write function!\r\n What a mistake!", strerror(errno));
+      ssize_t bytes_written = rpmsg_trysend(&lept, buf, len);
       if (0 < bytes_written)
       {
           ret = size_t(bytes_written);
@@ -62,7 +63,7 @@ namespace eprosima {
       (void)timeout;
       (void)transport_rc;
 
-      UXR_ERROR("Entered the read functio! What a mistake!", strerror(errno));
+      UXR_PRINTF("Entered the read function!\r\n What a mistake!", strerror(errno));
       sleep(2);
 
       // int rpmsg_buffer_len = 0;

@@ -154,12 +154,15 @@ namespace eprosima {
       else UXR_PRINTF("Success creating ept!", ret);
 
       max_size = rpmsg_get_tx_buffer_size(&lept);
-      if (max_size <= 0) {
+      if (max_size <= 0)
+	{
 	UXR_ERROR("No available buffer size.", strerror(errno));
 	rpmsg_destroy_ept(&lept);
 	return false;
       }
-      i_payload = (char *)metal_allocate_memory(max_size);
+
+      i_payload = (uint8_t *)metal_allocate_memory(2 * sizeof(unsigned long) +
+						max_size);
 
       if (!i_payload) {
 	UXR_ERROR("memory allocation failed.", strerror(errno));
@@ -167,14 +170,10 @@ namespace eprosima {
 	return false;
       }
 
-      UXR_PRINTF("RPMsg device TX buffer size: ", rpmsg_get_tx_buffer_size(&lept));
-      UXR_PRINTF("RPMsg device RX buffer size: ", rpmsg_get_rx_buffer_size(&lept));
+      UXR_PRINTF("RPMsg device RT and TX buffers size: ", max_size);
 
       while (!is_rpmsg_ept_ready(&lept))
 	platform_poll(platform);
-
-      UXR_PRINTF("RPMSG endpoint is binded with remote.", NULL);
-
 
       UXR_PRINTF("RPMsg init is successful.", NULL);
       return true;

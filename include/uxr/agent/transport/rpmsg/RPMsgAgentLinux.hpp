@@ -56,7 +56,7 @@ namespace eprosima {
       bool has_p2p() final { return false; }
 #endif
 
-      char * i_payload;
+      uint8_t * i_payload;
       struct rpmsg_endpoint lept;
       int shutdown_req;
       void *platform;
