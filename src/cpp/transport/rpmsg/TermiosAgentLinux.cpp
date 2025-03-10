@@ -112,14 +112,7 @@ namespace eprosima {
       int ret, max_size;
 
       UXR_PRINTF("openamp lib version: ", openamp_version());
-      UXR_PRINTF("Major: ", openamp_version_major());
-      UXR_PRINTF("Minor: ", openamp_version_minor());
-      UXR_PRINTF("Patch: ", openamp_version_patch());
-
       UXR_PRINTF("libmetal lib version: ", metal_ver());
-      UXR_PRINTF("Major: ", metal_ver_major());
-      UXR_PRINTF("Minor: ", metal_ver_minor());
-      UXR_PRINTF("Patch: ", metal_ver_patch());
 
       UXR_PRINTF("Initializing the platform...", NULL);
       ret = platform_init(argc, argv, &platform);
@@ -129,7 +122,6 @@ namespace eprosima {
 	  return false;
 	}
 
-      UXR_PRINTF("Creating vdev...", NULL);
       rpdev = platform_create_rpmsg_vdev(platform, 0,
 					 VIRTIO_DEV_DRIVER,
 					 NULL,
@@ -140,18 +132,15 @@ namespace eprosima {
 	  return false;
 	}
 
-      UXR_PRINTF("Try creating ept...", NULL);
       ret = rpmsg_create_ept(&lept, rpdev, RPMSG_SERVICE_NAME,
 			     RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
 			     (rpmsg_ept_cb)rpmsg_endpoint_cb_wrap,
 			     (rpmsg_ns_unbind_cb)rpmsg_service_unbind_wrap);
-
       if (ret)
 	{
 	  UXR_ERROR("Failed to create endpoint.", strerror(errno));
 	  return false;
 	}
-      else UXR_PRINTF("Success creating ept!", ret);
 
       max_size = rpmsg_get_tx_buffer_size(&lept);
       if (max_size <= 0)
@@ -169,8 +158,6 @@ namespace eprosima {
 	rpmsg_destroy_ept(&lept);
 	return false;
       }
-
-      UXR_PRINTF("RPMsg device RT and TX buffers size: ", max_size);
 
       while (!is_rpmsg_ept_ready(&lept))
 	platform_poll(platform);
