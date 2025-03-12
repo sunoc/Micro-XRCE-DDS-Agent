@@ -111,6 +111,7 @@ namespace eprosima {
       char **argv = NULL;
       int ret, max_size;
 
+      UXR_PRINTF("Start RPMsg Initialization process...", NULL);
       UXR_PRINTF("openamp lib version: ", openamp_version());
       UXR_PRINTF("libmetal lib version: ", metal_ver());
 
@@ -168,8 +169,10 @@ namespace eprosima {
 
     bool TermiosRPMsgAgent::fini()
     {
+      UXR_PRINTF("Start RPMsg Finishing process...", NULL);
 
-      UXR_PRINTF("Custom RPMSg Micro XRCE-DDS Agent FINI function.", NULL);
+      platform_release_rpmsg_vdev(rpdev, platform);
+      platform_cleanup(platform);
 
       UXR_PRINTF("Everything was freed and close cleanly.", NULL);
       return true;
