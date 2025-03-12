@@ -16,6 +16,7 @@ extern "C" {
 
 #include <iostream>
 #include <string>
+#include <queue>
 
 #include <cstdint>
 #include <cstddef>
@@ -30,8 +31,6 @@ extern "C" {
 /* RPMsg max payload size values*/
 #define RPMSG_SERVICE_NAME         "rpmsg-openamp-demo-channel"
 #define SHUTDOWN_MSG 0xEF56A55A
-
-#define RPMSG_STBUF_SIZE 2048
 
 /* message printing utils */
 #define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
@@ -63,7 +62,13 @@ namespace eprosima {
       struct rpmsg_device *rpdev;
 
       /* Related to the buffer between the cb and the read function */
-      static char buffer[RPMSG_STBUF_SIZE];
+      struct rpmsg_in_data_t
+      {
+	void *pt;
+	size_t len;
+      };
+
+      std::queue<rpmsg_in_data_t> in_data_q;
 
     private:
 

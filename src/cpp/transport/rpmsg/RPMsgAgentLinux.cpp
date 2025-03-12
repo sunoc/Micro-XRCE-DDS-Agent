@@ -33,17 +33,19 @@ namespace eprosima {
 				    TransportRc& transport_rc)
     {
       size_t ret = 0;
-      UXR_PRINTF("Entered the write function!\r\n What a mistake!", strerror(errno));
-      ssize_t bytes_written = rpmsg_trysend(&lept, buf, len);
+      ssize_t bytes_written;
+
+      UXR_PRINTF("Entered the write function!\r\n Dangerous!", strerror(errno));
+      bytes_written = rpmsg_trysend(&lept, buf, len);
       if (0 < bytes_written)
-      {
+	{
           ret = size_t(bytes_written);
-      }
+	}
       else
-      {
+	{
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
-      }
+	}
       return ret;
     }
 
@@ -62,14 +64,21 @@ namespace eprosima {
       (void)len;
       (void)timeout;
       (void)transport_rc;
+      rpmsg_in_data_t in_data;
 
-      UXR_PRINTF("Entered the read function!\r\n What a mistake!", strerror(errno));
-      sleep(2);
+      if (in_data_q.empty())
+	{
+	  UXR_PRINTF("Input data queue is empty.", NULL);
+	  sleep(2);
+	  return 0;
+	}
 
-      // int rpmsg_buffer_len = 0;
-      // int attempts = 10;
+      in_data = in_data_q.front();
+      buf = (uint8_t*)in_data.pt;
+      len = in_data.len;
+      in_data_q.pop();
 
-      return 0;
+      return (ssize_t)len;
     }
 
     bool RPMsgAgent::recv_message(

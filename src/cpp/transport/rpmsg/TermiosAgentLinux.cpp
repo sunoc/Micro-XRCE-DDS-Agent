@@ -69,6 +69,7 @@ namespace eprosima {
       (void)ept;
       (void)priv;
       (void)src;
+      rpmsg_in_data_t in_data;
       UXR_PRINTF("Callback is reached", NULL);
 
       /* On reception of a shutdown we signal the application to terminate */
@@ -78,9 +79,12 @@ namespace eprosima {
 	return RPMSG_SUCCESS;
       }
 
-      /* Put the data in a buffer for the Agent read methode */
+      /* Put the data in a queue for the Agent read methode. */
       UXR_PRINTF("Received len: ", len);
       UXR_PRINTF("Buffer addr *data: ", data);
+      in_data.pt = data;
+      in_data.len = len;
+      in_data_q.push(in_data);
 
       return RPMSG_SUCCESS;
     }
