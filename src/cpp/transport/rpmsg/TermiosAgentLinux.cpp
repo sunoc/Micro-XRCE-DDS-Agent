@@ -56,6 +56,8 @@ namespace eprosima {
 	SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG
       };
 
+      UXR_PRINTF("Sending shutdown message.", NULL);
+
       bytes_sent = ::write(filedescriptor, &umsg, sizeof(umsg));
       if (0 >= bytes_sent){
 	UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno));
@@ -113,7 +115,10 @@ namespace eprosima {
     {
       int argc = 1;
       char **argv = NULL;
-      int ret, max_size;
+      int ret, max_size, hello_ret;
+
+      /* micro-ROS first handshake message. */
+      unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
 
       UXR_PRINTF("Start RPMsg Initialization process...", NULL);
       UXR_PRINTF("openamp lib version: ", openamp_version());
@@ -150,22 +155,31 @@ namespace eprosima {
       max_size = rpmsg_get_tx_buffer_size(&lept);
       if (max_size <= 0)
 	{
-	UXR_ERROR("No available buffer size.", strerror(errno));
-	rpmsg_destroy_ept(&lept);
-	return false;
-      }
+	  UXR_ERROR("No available buffer size.", strerror(errno));
+	  rpmsg_destroy_ept(&lept);
+	  return false;
+	}
 
       i_payload = (uint8_t *)metal_allocate_memory(2 * sizeof(unsigned long) +
 						max_size);
 
-      if (!i_payload) {
-	UXR_ERROR("memory allocation failed.", strerror(errno));
-	rpmsg_destroy_ept(&lept);
-	return false;
-      }
+      if (!i_payload)
+	{
+	  UXR_ERROR("memory allocation failed.", strerror(errno));
+	  rpmsg_destroy_ept(&lept);
+	  return false;
+	}
 
       while (!is_rpmsg_ept_ready(&lept))
 	platform_poll(platform);
+
+      hello_ret = rpmsg_trysend(&lept, hello, 10);
+      if (0 >= hello_ret)
+	{
+	  UXR_ERROR("Hello message sending failed.", strerror(errno));
+	  rpmsg_destroy_ept(&lept);
+	  return false;
+	}
 
       UXR_PRINTF("RPMsg init is successful.", NULL);
       return true;
