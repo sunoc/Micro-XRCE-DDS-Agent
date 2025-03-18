@@ -33,21 +33,28 @@ struct remoteproc_priv {
 	struct remoteproc_mem shm_mem; /**< shared memory */
 	unsigned int ipi_chn_mask; /**< IPI channel mask */
 	atomic_int ipi_nokick;
-#ifdef RPMSG_NO_IPI
-	const char *shm_poll_name; /**< shared memory device name */
-	const char *shm_poll_bus_name; /**< shared memory bus name */
-	struct metal_device *shm_poll_dev; /**< pointer to poll mem device */
-	struct metal_io_region *shm_poll_io; /**< pointer to poll mem i/o */
-#endif /* RPMSG_NO_IPI */
-
 };
 
-#ifdef RPMSG_NO_IPI
-#ifndef POLL_DEV_NAME
-#define POLL_DEV_NAME        "3ee40000.poll" /* shared device name */
-#endif /* !POLL_DEV_NAME */
-#define POLL_STOP 0x1U
-#endif /* RPMSG_NO_IPI */
+#define RPU_CPU_ID          0 /* RPU remote CPU Index. We only talk to
+			       * one CPU in the example. We set the CPU
+			       * index to 0.
+			       */
+#define IPI_CHN_BITMASK	    0x00000100
+#define IPI_DEV_NAME	    "ff340000.ipi"
+
+#define DEV_BUS_NAME        "platform" /* device bus name. "platform" bus
+                                        * is used in Linux kernel for generic
+					* devices */
+
+#define SHM_DEV_NAME        "3ed20000.shm" /* shared device name */
+#define RSC_MEM_PA          0x3ED20000UL
+#define RSC_MEM_SIZE        0x2000UL
+#define VRING_MEM_PA        0x3ED40000UL
+#define VRING_MEM_SIZE      0x8000UL
+#define SHARED_BUF_PA       0x3ED48000UL
+#define SHARED_BUF_SIZE     0x40000UL
+
+#define _rproc_wait() metal_cpu_yield()
 
 #if defined __cplusplus
 }

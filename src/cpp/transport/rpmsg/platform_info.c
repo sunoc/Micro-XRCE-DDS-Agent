@@ -16,57 +16,12 @@
 #include <sys/un.h>
 #include <uxr/agent/transport/rpmsg/platform_info.h>
 
-#define RPU_CPU_ID          0 /* RPU remote CPU Index. We only talk to
-			       * one CPU in the example. We set the CPU
-			       * index to 0.
-			       */
-#ifndef IPI_CHN_BITMASK
-#define IPI_CHN_BITMASK	    0x00000100
-#endif /* !IPI_CHN_BITMASK */
-#ifndef IPI_DEV_NAME
-#define IPI_DEV_NAME	    "ff340000.ipi"
-#endif /* !IPI_DEV_NAME */
-
-#define DEV_BUS_NAME        "platform" /* device bus name. "platform" bus
-                                        * is used in Linux kernel for generic
-					* devices */
-/* libmetal devices names used in the examples.
- * They are platform devices, you find them in Linux sysfs
- * sys/bus/platform/devices */
-#ifndef SHM_DEV_NAME
-#define SHM_DEV_NAME        "3ed20000.shm" /* shared device name */
-#endif /* SHM_DEV_NAME */
-#ifndef RSC_MEM_PA
-#define RSC_MEM_PA          0x3ED20000UL
-#endif /* !RSC_MEM_PA */
-#ifndef RSC_MEM_SIZE
-#define RSC_MEM_SIZE        0x2000UL
-#endif /* !RSC_MEM_SIZE */
-#ifndef VRING_MEM_PA
-#define VRING_MEM_PA        0x3ED40000UL
-#endif /* !VRING_MEM_PA */
-#ifndef VRING_MEM_SIZE
-#define VRING_MEM_SIZE      0x8000UL
-#endif /* !VRING_MEM_SIZE */
-#ifndef SHARED_BUF_PA
-#define SHARED_BUF_PA       0x3ED48000UL
-#endif /* !SHARED_BUF_PA */
-#ifndef SHARED_BUF_SIZE
-#define SHARED_BUF_SIZE     0x40000UL
-#endif /* !SHARED_BUF_SIZE */
-
 struct remoteproc_priv rproc_priv = {
 	.shm_name = SHM_DEV_NAME,
 	.shm_bus_name = DEV_BUS_NAME,
-#ifndef RPMSG_NO_IPI
 	.ipi_name = IPI_DEV_NAME,
 	.ipi_bus_name = DEV_BUS_NAME,
 	.ipi_chn_mask = IPI_CHN_BITMASK,
-#endif /* !RPMSG_NO_IPI */
-#ifdef RPMSG_NO_IPI
-	.shm_poll_name = POLL_DEV_NAME,
-	.shm_poll_bus_name = DEV_BUS_NAME,
-#endif /* RPMSG_NO_IPI */
 };
 
 static struct remoteproc rproc_inst;
@@ -74,9 +29,6 @@ static struct remoteproc rproc_inst;
 /* External functions */
 extern int init_system(void);
 extern void cleanup_system(void);
-
-#define _rproc_wait() metal_cpu_yield()
-
 
 /* processor operations from r5 to a53. It defines
  * notification operation and remote processor managementi operations. */
@@ -208,37 +160,27 @@ err1:
 
 int platform_poll(void *priv)
 {
-	struct remoteproc *rproc = priv;
-	struct remoteproc_priv *prproc;
-	unsigned int flags;
-	int ret;
+  struct remoteproc *rproc = priv;
+  struct remoteproc_priv *prproc;
+  unsigned int flags;
+  int ret;
 
-	prproc = rproc->priv;
-	while(1) {
-#ifdef RPMSG_NO_IPI
-		(void)flags;
-		if (metal_io_read32(prproc->shm_poll_io, 0)) {
-			ret = remoteproc_get_notification(rproc,
-							  RSC_NOTIFY_ID_ANY);
-			if (ret)
-				return ret;
-			break;
-		}
-#else
-		flags = metal_irq_save_disable();
-		if (!(atomic_flag_test_and_set(&prproc->ipi_nokick))) {
-			metal_irq_restore_enable(flags);
-			ret = remoteproc_get_notification(rproc,
-							  RSC_NOTIFY_ID_ANY);
-			if (ret)
-				return ret;
-			break;
-		}
-		_rproc_wait();
-		metal_irq_restore_enable(flags);
-#endif /* RPMSG_NO_IPI */
-	}
-	return 0;
+  prproc = rproc->priv;
+  while(1)
+    {
+      flags = metal_irq_save_disable();
+      if (!(atomic_flag_test_and_set(&prproc->ipi_nokick))) {
+	metal_irq_restore_enable(flags);
+	ret = remoteproc_get_notification(rproc,
+					  RSC_NOTIFY_ID_ANY);
+	if (ret)
+	  return ret;
+	break;
+      }
+      _rproc_wait();
+      metal_irq_restore_enable(flags);
+    }
+  return 0;
 }
 
 void platform_release_rpmsg_vdev(struct rpmsg_device *rpdev, void *platform)
