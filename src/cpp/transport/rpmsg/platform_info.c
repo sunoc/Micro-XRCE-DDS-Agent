@@ -138,7 +138,6 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
 				SHARED_BUF_PA);
 
   printf("Creating virtio...\r\n");
-  /* TODO: can we have a wrapper for the following two functions? */
   vdev = remoteproc_create_virtio(rproc, vdev_index, role, rst_cb);
   if (!vdev)
     {
