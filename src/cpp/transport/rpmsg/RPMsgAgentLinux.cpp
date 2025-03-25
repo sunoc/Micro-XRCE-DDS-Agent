@@ -35,7 +35,7 @@ namespace eprosima {
       size_t ret = 0;
       ssize_t bytes_written;
 
-      UXR_PRINTF("Entered the write function!\r\n Dangerous!", strerror(errno));
+      UXR_PRINTF("Entered the write function!", NULL);
       bytes_written = rpmsg_trysend(&lept, buf, len);
       if (0 < bytes_written)
 	{
@@ -60,25 +60,39 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
-      (void)buf;
-      (void)len;
-      (void)timeout;
-      (void)transport_rc;
       rpmsg_in_data_t in_data;
+      int waittime = 10; /* milliseconds */
 
-      if (in_data_q.empty())
+      if ( 0 >= timeout )
 	{
-	  UXR_PRINTF("Input data queue is empty.", NULL);
-	  sleep(2);
+	  UXR_ERROR("Timeout: ", strerror(ETIME));
+	  transport_rc = TransportRc::timeout_error;
 	  return 0;
 	}
 
+      if (in_data_q.empty())
+	{
+	  std::this_thread::sleep_for(std::chrono::milliseconds(waittime));
+	  return RPMsgAgent::read_data(buf,
+				       len,
+				       timeout - waittime,
+				       transport_rc);
+	}
+
       in_data = in_data_q.front();
-      buf = (uint8_t*)in_data.pt;
-      len = in_data.len;
       in_data_q.pop();
 
-      return (ssize_t)len;
+      // UXR_PRINTF("Got a request for some bytes.", len);
+      // UXR_PRINTF("Got a some bytes in the queue", in_data.len);
+      // UXR_PRINTF("Got a some pointer in the queue", (void *)in_data.pt);
+
+      for (size_t i = 0; i<in_data.len; i++)
+	{
+	  //UXR_PRINTF("in_data.pt[i]", in_data.pt[i]);
+	  buf[i] = in_data.pt[i];
+	}
+
+      return (ssize_t)in_data.len;
     }
 
     bool RPMsgAgent::recv_message(

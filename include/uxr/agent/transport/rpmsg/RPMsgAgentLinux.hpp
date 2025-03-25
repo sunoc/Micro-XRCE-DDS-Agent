@@ -36,6 +36,13 @@ extern "C" {
 #define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)
 #define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
 
+/* Buffer between the cb and the read function */
+struct rpmsg_in_data_t
+{
+  uint8_t *pt;
+  size_t len;
+};
+
 namespace eprosima {
   namespace uxr {
 
@@ -55,19 +62,14 @@ namespace eprosima {
 #endif
 
       uint8_t * i_payload;
-      struct rpmsg_endpoint lept;
-      int shutdown_req;
       void *platform;
       struct rpmsg_device *rpdev;
 
-      /* Related to the buffer between the cb and the read function */
-      struct rpmsg_in_data_t
-      {
-	void *pt;
-	size_t len;
-      };
-
-      std::queue<rpmsg_in_data_t> in_data_q;
+      /* Static variables for static class methods. */
+      static struct rpmsg_endpoint lept;
+      static unsigned long int * i_raw_data_ptr;
+      static int shutdown_req;
+      static std::queue<rpmsg_in_data_t> in_data_q;
 
     private:
 

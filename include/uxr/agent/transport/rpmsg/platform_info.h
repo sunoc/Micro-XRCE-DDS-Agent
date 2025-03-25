@@ -54,6 +54,8 @@ struct remoteproc_priv {
 #define SHARED_BUF_PA       0x3ED48000UL
 #define SHARED_BUF_SIZE     0x40000UL
 
+#define OCM_RAM_BASE_ADDR   0xFF340000UL
+
 #define _rproc_wait() metal_cpu_yield()
 
 #if defined __cplusplus

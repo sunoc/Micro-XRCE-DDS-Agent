@@ -3,6 +3,7 @@
  * demo application.
  */
 
+#include <cstdint>
 #include <uxr/agent/transport/rpmsg/TermiosAgentLinux.hpp>
 
 namespace eprosima {
@@ -35,6 +36,12 @@ namespace eprosima {
 				 e.what());
 	}
     }
+
+    /* Static global variables init. */
+    struct rpmsg_endpoint RPMsgAgent::lept;
+    unsigned long int * RPMsgAgent::i_raw_data_ptr;
+    int RPMsgAgent::shutdown_req;
+    std::queue<rpmsg_in_data_t> RPMsgAgent::in_data_q;
 
     /**************************************************************************
      *
@@ -71,23 +78,30 @@ namespace eprosima {
       (void)ept;
       (void)priv;
       (void)src;
+      UXR_PRINTF("Callback is reached", (void *)data);
+
       rpmsg_in_data_t in_data;
-      UXR_PRINTF("Callback is reached", NULL);
+
+      i_raw_data_ptr = (unsigned long int *)data;
 
       /* On reception of a shutdown we signal the application to terminate */
-      if ((*(unsigned int *)data) == SHUTDOWN_MSG) {
-	UXR_PRINTF("shutdown message is received.", NULL);
-	shutdown_req = 1;
-	return RPMSG_SUCCESS;
-      }
+      if (*(i_raw_data_ptr) == SHUTDOWN_MSG)
+	{
+	  UXR_WARNING("shutdown message is received", NULL);
+	  shutdown_req = 1;
+	  return RPMSG_SUCCESS;
+	}
 
       /* Put the data in a queue for the Agent read methode. */
-      UXR_PRINTF("Received len: ", len);
-      UXR_PRINTF("Buffer addr *data: ", data);
-      in_data.pt = data;
+      in_data.pt = (uint8_t *)(i_raw_data_ptr);
+      UXR_PRINTF("Buffer addr *data", (void *)in_data.pt);
       in_data.len = len;
+      UXR_PRINTF("Received len", in_data.len);
+
+      UXR_PRINTF("1st data push to queue", *(in_data.pt));
       in_data_q.push(in_data);
 
+      UXR_PRINTF("Callback is successful!", NULL);
       return RPMSG_SUCCESS;
     }
 
@@ -173,11 +187,11 @@ namespace eprosima {
       while (!is_rpmsg_ept_ready(&lept))
 	platform_poll(platform);
 
-      hello_ret = rpmsg_trysend(&lept, hello, 10);
+      hello_ret = rpmsg_send(&lept, hello, 10);
       if (0 >= hello_ret)
 	{
 	  UXR_ERROR("Hello message sending failed.", strerror(errno));
-	  rpmsg_destroy_ept(&lept);
+	  fini();
 	  return false;
 	}
 
@@ -188,6 +202,9 @@ namespace eprosima {
     bool TermiosRPMsgAgent::fini()
     {
       UXR_PRINTF("Start RPMsg Finishing process...", NULL);
+
+      rpmsg_destroy_ept(&lept);
+      metal_free_memory(i_payload);
 
       platform_release_rpmsg_vdev(rpdev, platform);
       platform_cleanup(platform);

@@ -25,15 +25,15 @@ namespace eprosima {
 
       void send_shutdown(int filedescriptor);
 
-      int rpmsg_endpoint_cb(struct rpmsg_endpoint *ept,
+      static int rpmsg_endpoint_cb(struct rpmsg_endpoint *ept,
 			    void *data,
 			    size_t len,
 			    uint32_t src,
 			    void *priv);
 
-      void rpmsg_service_unbind(struct rpmsg_endpoint *ept);
+      static void rpmsg_service_unbind(struct rpmsg_endpoint *ept);
 
-      void rpmsg_name_service_bind_cb(struct rpmsg_device *rdev,
+      static void rpmsg_name_service_bind_cb(struct rpmsg_device *rdev,
 				      const char *name, uint32_t dest);
 
     private:
