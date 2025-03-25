@@ -11,7 +11,6 @@
  */
 extern "C" {
 #include <uxr/agent/transport/rpmsg/platform_info.h>
-#include <uxr/agent/transport/rpmsg/helper.h>
 }
 
 #include <iostream>

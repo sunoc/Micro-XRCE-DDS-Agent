@@ -107,8 +107,8 @@ namespace eprosima {
       else
 	(void)rpmsg_create_ept(&lept, rdev, RPMSG_SERVICE_NAME,
 			       RPMSG_ADDR_ANY, dest,
-			       (rpmsg_ept_cb)rpmsg_endpoint_cb_wrap,
-			       (rpmsg_ns_unbind_cb)rpmsg_service_unbind_wrap);
+			       TermiosRPMsgAgent::rpmsg_endpoint_cb,
+			       TermiosRPMsgAgent::rpmsg_service_unbind);
     }
 
     bool TermiosRPMsgAgent::init()
@@ -135,7 +135,7 @@ namespace eprosima {
       rpdev = platform_create_rpmsg_vdev(platform, 0,
 					 VIRTIO_DEV_DRIVER,
 					 NULL,
-					 (rpmsg_ns_bind_cb)rpmsg_name_service_bind_cb_wrap);
+					 TermiosRPMsgAgent::rpmsg_name_service_bind_cb);
       if (!rpdev)
 	{
 	  UXR_ERROR("Failed to create rpmsg virtio device.", strerror(errno));
@@ -144,8 +144,8 @@ namespace eprosima {
 
       ret = rpmsg_create_ept(&lept, rpdev, RPMSG_SERVICE_NAME,
 			     RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
-			     (rpmsg_ept_cb)rpmsg_endpoint_cb_wrap,
-			     (rpmsg_ns_unbind_cb)rpmsg_service_unbind_wrap);
+			     TermiosRPMsgAgent::rpmsg_endpoint_cb,
+			     TermiosRPMsgAgent::rpmsg_service_unbind);
       if (ret)
 	{
 	  UXR_ERROR("Failed to create endpoint.", strerror(errno));
