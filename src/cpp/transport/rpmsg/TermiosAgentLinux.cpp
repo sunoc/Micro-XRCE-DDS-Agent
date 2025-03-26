@@ -94,14 +94,11 @@ namespace eprosima {
 
       /* Put the data in a queue for the Agent read methode. */
       in_data.pt = (uint8_t *)(i_raw_data_ptr);
-      UXR_PRINTF("Buffer addr *data", (void *)in_data.pt);
       in_data.len = len;
       UXR_PRINTF("Received len", in_data.len);
 
-      UXR_PRINTF("1st data push to queue", *(in_data.pt));
       in_data_q.push(in_data);
 
-      UXR_PRINTF("Callback is successful!", NULL);
       return RPMSG_SUCCESS;
     }
 
