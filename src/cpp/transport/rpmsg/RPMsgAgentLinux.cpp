@@ -36,8 +36,8 @@ namespace eprosima {
       ssize_t bytes_written;
 
       UXR_PRINTF("Entered the write function!", NULL);
-      bytes_written = rpmsg_trysend(&lept, buf, len);
-      if (0 < bytes_written)
+      bytes_written = rpmsg_send(&lept, buf, len);
+      if ( 0 < bytes_written )
 	{
           ret = size_t(bytes_written);
 	}
@@ -60,39 +60,92 @@ namespace eprosima {
 				   int timeout,
 				   TransportRc& transport_rc)
     {
-      rpmsg_in_data_t in_data;
-      int waittime = 10; /* milliseconds */
+      rpmsg_in_data_t in_data, in_data_trunk;
+      std::queue<rpmsg_in_data_t> in_data_q_copy;
 
       if ( 0 >= timeout )
 	{
-	  UXR_ERROR("Timeout: ", strerror(ETIME));
+	  UXR_WARNING("Read timeout: ", strerror(ETIME));
 	  transport_rc = TransportRc::timeout_error;
 	  return 0;
 	}
 
-      if (in_data_q.empty())
+      while ( in_data_q.empty() )
 	{
-	  std::this_thread::sleep_for(std::chrono::milliseconds(waittime));
-	  return RPMsgAgent::read_data(buf,
-				       len,
-				       timeout - waittime,
-				       transport_rc);
+	  UXR_WARNING("Got a request but queue is empty.", len);
+	  platform_poll(platform);
 	}
 
+      UXR_PRINTF("Queue is not empty", in_data_q.size());
       in_data = in_data_q.front();
-      in_data_q.pop();
+      UXR_PRINTF("Queue got some bytes.", in_data.len);
 
-      // UXR_PRINTF("Got a request for some bytes.", len);
-      // UXR_PRINTF("Got a some bytes in the queue", in_data.len);
-      // UXR_PRINTF("Got a some pointer in the queue", (void *)in_data.pt);
-
-      for (size_t i = 0; i<in_data.len; i++)
+      /* usual case. */
+      if ( in_data.len == len )
 	{
-	  //UXR_PRINTF("in_data.pt[i]", in_data.pt[i]);
-	  buf[i] = in_data.pt[i];
+	  for ( size_t i = 0; i<len; i++ )
+	    {
+	      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	      buf[i] = in_data.pt[i];
+	    }
+
+	  in_data_q.pop();
+	}
+      /* received package "too big" */
+      else if ( in_data.len > len )
+	{
+	  for ( size_t i = 0; i<len; i++ )
+	    {
+	      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	      buf[i] = in_data.pt[i];
+	    }
+
+	  /* Trunkate the first element of the queue. */
+	  in_data_trunk.len =  in_data.len - len;
+	  in_data_trunk.pt =  in_data.pt + len;
+
+	  /* Put the new first element in the queue copy. */
+	  while ( !in_data_q_copy.empty() )
+	    in_data_q_copy.pop();
+
+	  in_data_q_copy.push(in_data_trunk);
+	  in_data_q.pop();
+
+	  /* Put the rest of the queue in the copy. */
+	  for ( int i = 0; i<(int)in_data_q.size(); i++ )
+	    {
+	      in_data_q_copy.push(in_data_q.front());
+	      in_data_q.pop();
+	    }
+
+	  /* Put back the modified queue in the main one. */
+	  while ( !in_data_q.empty() )
+	    in_data_q.pop();
+
+	  while ( !in_data_q_copy.empty() )
+	    {
+	      in_data_q.push(in_data_q_copy.front());
+	      in_data_q_copy.pop();
+	    }
+
+	}
+      /* not enough data received in the first package. */
+      else /* if ( in_data.len < len) */
+	{
+	  for ( size_t i = 0; i<in_data.len; i++ )
+	    {
+	      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	      buf[i] = in_data.pt[i];
+	    }
+
+	  in_data_q.pop();
+	  UXR_PRINTF("Success in cb, but not enough data...", in_data.len);
+	  return in_data.len;
 	}
 
-      return (ssize_t)in_data.len;
+
+      UXR_PRINTF("Read function is successful!", len);
+      return len;
     }
 
     bool RPMsgAgent::recv_message(
