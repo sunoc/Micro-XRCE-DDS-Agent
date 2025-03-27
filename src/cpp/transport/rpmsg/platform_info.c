@@ -1,6 +1,3 @@
-/*
- * Imported platform functions and configurations from open-amp.
- */
 #include <metal/alloc.h>
 #include <metal/atomic.h>
 #include <metal/io.h>
@@ -17,11 +14,11 @@
 #include <uxr/agent/transport/rpmsg/platform_info.h>
 
 struct remoteproc_priv rproc_priv = {
-	.shm_name = SHM_DEV_NAME,
-	.shm_bus_name = DEV_BUS_NAME,
-	.ipi_name = IPI_DEV_NAME,
-	.ipi_bus_name = DEV_BUS_NAME,
-	.ipi_chn_mask = IPI_CHN_BITMASK,
+  .shm_name = SHM_DEV_NAME,
+  .shm_bus_name = DEV_BUS_NAME,
+  .ipi_name = IPI_DEV_NAME,
+  .ipi_bus_name = DEV_BUS_NAME,
+  .ipi_chn_mask = IPI_CHN_BITMASK,
 };
 
 static struct remoteproc rproc_inst;
@@ -50,8 +47,9 @@ platform_create_proc(int proc_index, int rsc_index)
   rsc_size = RSC_MEM_SIZE;
 
   /* Initialize remoteproc instance */
-  if (!remoteproc_init(&rproc_inst, &zynqmp_linux_r5_proc_ops,
-		       &rproc_priv))
+  if ( !remoteproc_init(&rproc_inst,
+			&zynqmp_linux_r5_proc_ops,
+			&rproc_priv) )
     return NULL;
   printf("Successfully initialized remoteproc\r\n");
 
@@ -60,7 +58,7 @@ platform_create_proc(int proc_index, int rsc_index)
   printf("Calling mmap resource table.\r\n");
   rsc_table = remoteproc_mmap(&rproc_inst, &pa, NULL, rsc_size,
 			      0, NULL);
-  if (!rsc_table)
+  if ( !rsc_table )
     {
       fprintf(stderr, "ERROR: Failed to mmap resource table.\r\n");
       return NULL;
@@ -68,7 +66,7 @@ platform_create_proc(int proc_index, int rsc_index)
   printf("Successfully mmap resource table.\r\n");
   /* parse resource table to remoteproc */
   ret = remoteproc_set_rsc_table(&rproc_inst, rsc_table, rsc_size);
-  if (ret)
+  if ( ret )
     {
       printf("Failed to initialize remoteproc\r\n");
       remoteproc_remove(&rproc_inst);
@@ -86,7 +84,7 @@ platform_init(int argc, char *argv[], void **platform)
   unsigned long rsc_id = 0;
   struct remoteproc *rproc;
 
-  if (!platform)
+  if ( !platform )
     {
       fprintf(stderr, "Failed to initialize platform, NULL pointer"
 	      "to store platform data.\r\n");
@@ -95,18 +93,18 @@ platform_init(int argc, char *argv[], void **platform)
   /* Initialize HW system components */
   init_system();
 
-  if (argc >= 2)
+  if ( argc >= 2 )
     {
       proc_id = strtoul(argv[1], NULL, 0);
     }
 
-  if (argc >= 3)
+  if ( argc >= 3 )
     {
       rsc_id = strtoul(argv[2], NULL, 0);
     }
 
   rproc = platform_create_proc(proc_id, rsc_id);
-  if (!rproc)
+  if ( !rproc )
     {
       fprintf(stderr, "Failed to create remoteproc device.\r\n");
       return -EINVAL;
@@ -129,17 +127,17 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
   int ret;
 
   rpmsg_vdev = metal_allocate_memory(sizeof(*rpmsg_vdev));
-  if (!rpmsg_vdev)
+  if ( !rpmsg_vdev )
     return NULL;
   shbuf_io = remoteproc_get_io_with_pa(rproc, SHARED_BUF_PA);
-  if (!shbuf_io)
+  if ( !shbuf_io )
     goto err1;
   shbuf = metal_io_phys_to_virt(shbuf_io,
 				SHARED_BUF_PA);
 
   printf("Creating virtio...\r\n");
   vdev = remoteproc_create_virtio(rproc, vdev_index, role, rst_cb);
-  if (!vdev)
+  if ( !vdev )
     {
       printf("failed remoteproc_create_virtio\r\n");
       goto err1;
@@ -153,7 +151,7 @@ platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
   /* RPMsg virtio device can set shared buffers pool argument to NULL */
   ret = rpmsg_init_vdev(rpmsg_vdev, vdev, ns_bind_cb,
 			shbuf_io, &shpool);
-  if (ret)
+  if ( ret )
     {
       printf("failed rpmsg_init_vdev\r\n");
       goto err2;
@@ -175,7 +173,7 @@ platform_poll(void *priv)
   int ret;
 
   prproc = rproc->priv;
-  while(1)
+  while( 1 )
     {
       flags = metal_irq_save_disable();
       if (!(atomic_flag_test_and_set(&prproc->ipi_nokick)))
@@ -183,7 +181,7 @@ platform_poll(void *priv)
 	  metal_irq_restore_enable(flags);
 	  ret = remoteproc_get_notification(rproc,
 					    RSC_NOTIFY_ID_ANY);
-	  if (ret)
+	  if ( ret )
 	    return ret;
 	  break;
 	}
@@ -211,7 +209,7 @@ platform_cleanup(void *platform)
 {
   struct remoteproc *rproc = platform;
 
-  if (rproc)
+  if ( rproc )
     remoteproc_remove(rproc);
   cleanup_system();
 }
