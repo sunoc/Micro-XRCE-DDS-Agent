@@ -1,8 +1,3 @@
-/*
- * This uses a communication system based on open-amp's "rpmsg-ping.c"
- * demo application.
- */
-
 #include <cstdint>
 #include <uxr/agent/transport/rpmsg/TermiosAgentLinux.hpp>
 
@@ -55,37 +50,43 @@ namespace eprosima {
      * @note		None.
      *
      **************************************************************************/
-    void TermiosRPMsgAgent::send_shutdown(int filedescriptor)
+    void
+    TermiosRPMsgAgent::send_shutdown(int filedescriptor)
     {
       ssize_t bytes_sent = -1;
-      unsigned int umsg[8] = {
-	SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG,
-	SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG
-      };
+      unsigned int umsg[8] =
+	{
+	  SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG,
+	  SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG
+	};
 
-      UXR_PRINTF("Sending shutdown message.", NULL);
+      UXR_WARNING("Sending shutdown message.", NULL);
 
       bytes_sent = ::write(filedescriptor, &umsg, sizeof(umsg));
-      if (0 >= bytes_sent){
-	UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno));
-      }
+      if ( 0 >= bytes_sent )
+	{
+	  UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno));
+	}
     }
 
-    int TermiosRPMsgAgent::rpmsg_endpoint_cb(struct rpmsg_endpoint *ept,
-					     void *data, size_t len,
-					     uint32_t src, void *priv)
+    /**************************************************************************
+     *
+     * @brief        RPMsg input data callback methode.
+     *
+     **************************************************************************/
+    int
+    TermiosRPMsgAgent::rpmsg_endpoint_cb(struct rpmsg_endpoint *ept,
+					 void *data, size_t len,
+					 uint32_t src, void *priv)
     {
       (void)ept;
       (void)priv;
       (void)src;
-      UXR_PRINTF("Callback is reached", (void *)data);
-
       rpmsg_in_data_t in_data;
-
       i_raw_data_ptr = (unsigned long int *)data;
 
       /* On reception of a shutdown we signal the application to terminate */
-      if (*(i_raw_data_ptr) == SHUTDOWN_MSG)
+      if ( *(i_raw_data_ptr) == SHUTDOWN_MSG )
 	{
 	  UXR_WARNING("shutdown message is received", NULL);
 	  shutdown_req = 1;
@@ -95,25 +96,37 @@ namespace eprosima {
       /* Put the data in a queue for the Agent read methode. */
       in_data.pt = (uint8_t *)(i_raw_data_ptr);
       in_data.len = len;
-      UXR_PRINTF("Received len", in_data.len);
 
       in_data_q.push(in_data);
 
       return RPMSG_SUCCESS;
     }
 
-    void TermiosRPMsgAgent::rpmsg_service_unbind(struct rpmsg_endpoint *ept)
+    /**************************************************************************
+     *
+     * @brief        RPMsg unbinding notification.
+     *
+     **************************************************************************/
+    void
+    TermiosRPMsgAgent::rpmsg_service_unbind(struct rpmsg_endpoint *ept)
     {
       (void)ept;
       UXR_PRINTF("unexpected Remote endpoint destroy.", NULL);
       shutdown_req = 1;
     }
 
-    void TermiosRPMsgAgent::rpmsg_name_service_bind_cb(struct rpmsg_device *rdev,
-					 const char *name, uint32_t dest)
+    /**************************************************************************
+     *
+     * @brief        RPMsg input data callback methode.
+     *
+     **************************************************************************/
+    void
+    TermiosRPMsgAgent::rpmsg_name_service_bind_cb(struct rpmsg_device *rdev,
+						  const char *name,
+						  uint32_t dest)
     {
       UXR_PRINTF("new endpoint notification is received.", NULL);
-      if (strcmp(name, RPMSG_SERVICE_NAME))
+      if ( strcmp(name, RPMSG_SERVICE_NAME) )
 	UXR_ERROR("Unexpected name service:", name);
       else
 	(void)rpmsg_create_ept(&lept, rdev, RPMSG_SERVICE_NAME,
@@ -122,7 +135,13 @@ namespace eprosima {
 			       TermiosRPMsgAgent::rpmsg_service_unbind);
     }
 
-    bool TermiosRPMsgAgent::init()
+    /**************************************************************************
+     *
+     * @brief        Main setup methodef for user-space RPMsg.
+     *
+     **************************************************************************/
+    bool
+    TermiosRPMsgAgent::init()
     {
       int argc = 1;
       char **argv = NULL;
@@ -137,7 +156,7 @@ namespace eprosima {
 
       UXR_PRINTF("Initializing the platform...", NULL);
       ret = platform_init(argc, argv, &platform);
-      if (ret)
+      if ( ret )
 	{
 	  UXR_ERROR("Failed to initialize platform.", strerror(errno));
 	  return false;
@@ -147,7 +166,7 @@ namespace eprosima {
 					 VIRTIO_DEV_DRIVER,
 					 NULL,
 					 TermiosRPMsgAgent::rpmsg_name_service_bind_cb);
-      if (!rpdev)
+      if ( !rpdev )
 	{
 	  UXR_ERROR("Failed to create rpmsg virtio device.", strerror(errno));
 	  return false;
@@ -157,14 +176,14 @@ namespace eprosima {
 			     RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
 			     TermiosRPMsgAgent::rpmsg_endpoint_cb,
 			     TermiosRPMsgAgent::rpmsg_service_unbind);
-      if (ret)
+      if ( ret )
 	{
 	  UXR_ERROR("Failed to create endpoint.", strerror(errno));
 	  return false;
 	}
 
       max_size = rpmsg_get_tx_buffer_size(&lept);
-      if (max_size <= 0)
+      if ( max_size <= 0 )
 	{
 	  UXR_ERROR("No available buffer size.", strerror(errno));
 	  rpmsg_destroy_ept(&lept);
@@ -172,20 +191,20 @@ namespace eprosima {
 	}
 
       i_payload = (uint8_t *)metal_allocate_memory(2 * sizeof(unsigned long) +
-						max_size);
+						   max_size);
 
-      if (!i_payload)
+      if ( !i_payload )
 	{
 	  UXR_ERROR("memory allocation failed.", strerror(errno));
 	  rpmsg_destroy_ept(&lept);
 	  return false;
 	}
 
-      while (!is_rpmsg_ept_ready(&lept))
+      while ( !is_rpmsg_ept_ready(&lept) )
 	platform_poll(platform);
 
       hello_ret = rpmsg_send(&lept, hello, 10);
-      if (0 >= hello_ret)
+      if ( 0 >= hello_ret )
 	{
 	  UXR_ERROR("Hello message sending failed.", strerror(errno));
 	  fini();
@@ -196,7 +215,13 @@ namespace eprosima {
       return true;
     }
 
-    bool TermiosRPMsgAgent::fini()
+    /**************************************************************************
+     *
+     * @brief        Terminates RPMsg.
+     *
+     **************************************************************************/
+    bool
+    TermiosRPMsgAgent::fini()
     {
       UXR_PRINTF("Start RPMsg Finishing process...", NULL);
 
@@ -210,8 +235,13 @@ namespace eprosima {
       return true;
     }
 
-    bool TermiosRPMsgAgent::handle_error(
-					 TransportRc /*transport_rc*/)
+    /**************************************************************************
+     *
+     * @brief        "Reset button".
+     *
+     **************************************************************************/
+    bool
+    TermiosRPMsgAgent::handle_error(TransportRc /*transport_rc*/)
     {
       return fini() && init();
     }
