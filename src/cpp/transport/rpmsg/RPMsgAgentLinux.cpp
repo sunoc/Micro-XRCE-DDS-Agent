@@ -185,7 +185,7 @@ namespace eprosima {
 						     raw_client_key) )
 	    {
 	      UXR_AGENT_LOG_MESSAGE(
-				    UXR_DECORATE_YELLOW("[==>> SER <<==]"),
+				    UXR_DECORATE_YELLOW("[==>> RPMsg <<==]"),
 				    raw_client_key,
 				    input_packet.message->get_buf(),
 				    input_packet.message->get_len());
@@ -221,7 +221,7 @@ namespace eprosima {
 						    raw_client_key))
 	    {
 	      UXR_AGENT_LOG_MESSAGE(
-				    UXR_DECORATE_YELLOW("[** <<SER>> **]"),
+				    UXR_DECORATE_YELLOW("[** <<RPMsg>> **]"),
 				    raw_client_key,
 				    output_packet.message->get_buf(),
 				    output_packet.message->get_len());
