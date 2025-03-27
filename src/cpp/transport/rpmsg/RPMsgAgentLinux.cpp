@@ -43,12 +43,9 @@ namespace eprosima {
       size_t ret = 0;
       ssize_t bytes_written;
 
-      UXR_PRINTF("Entered the write function!", NULL);
       bytes_written = rpmsg_send(&lept, buf, len);
       if ( 0 < bytes_written )
-	{
-          ret = size_t(bytes_written);
-	}
+	ret = size_t(bytes_written);
       else
 	{
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
@@ -80,14 +77,9 @@ namespace eprosima {
 	}
 
       while ( in_data_q.empty() )
-	{
-	  UXR_WARNING("Got a request but queue is empty.", len);
-	  platform_poll(platform);
-	}
+	platform_poll(platform);
 
-      UXR_PRINTF("Queue is not empty", in_data_q.size());
       in_data = in_data_q.front();
-      UXR_PRINTF("Queue got some bytes.", in_data.len);
 
       /* usual case. */
       if ( in_data.len == len )
@@ -148,12 +140,9 @@ namespace eprosima {
 	    }
 
 	  in_data_q.pop();
-	  UXR_PRINTF("Success in cb, but not enough data...", in_data.len);
 	  return in_data.len;
 	}
 
-
-      UXR_PRINTF("Read function is successful!", len);
       return len;
     }
 
