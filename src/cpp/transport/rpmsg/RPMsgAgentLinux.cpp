@@ -40,6 +40,10 @@ namespace eprosima {
 			   size_t len,
 			   TransportRc& transport_rc)
     {
+#ifdef GPIO_MONITORING
+      /* turns on PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data | 0x1;
+#endif
       size_t ret = 0;
       ssize_t bytes_written;
 
@@ -51,6 +55,11 @@ namespace eprosima {
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
 	}
+
+#ifdef GPIO_MONITORING
+      /* turns off PIN 0 on GPIO channel 3 */
+      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
       return ret;
     }
 
@@ -66,6 +75,10 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
+#ifdef GPIO_MONITORING
+      /* turns on PIN 1 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data | 0x2;
+#endif
       rpmsg_in_data_t in_data, in_data_trunk;
       std::queue<rpmsg_in_data_t> in_data_q_copy;
 
@@ -140,9 +153,16 @@ namespace eprosima {
 	    }
 
 	  in_data_q.pop();
+#ifdef GPIO_MONITORING
+	  /* turns off PIN 1 on GPIO channel 2 */
+	  gpio[2].data = gpio[2].data & ~(0x2);
+#endif
 	  return in_data.len;
 	}
-
+#ifdef GPIO_MONITORING
+      /* turns off PIN 1 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data & ~(0x2);
+#endif
       return len;
     }
 

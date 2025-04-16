@@ -38,6 +38,11 @@ namespace eprosima {
     int RPMsgAgent::shutdown_req;
     std::queue<rpmsg_in_data_t> RPMsgAgent::in_data_q;
 
+#ifdef GPIO_MONITORING
+    int RPMsgAgent::GPIO_fd;
+    GPIO_t* RPMsgAgent::gpio;
+#endif
+
     /**************************************************************************
      *
      * @brief        This function goal is to send a shutdown package
@@ -79,6 +84,10 @@ namespace eprosima {
 					 void *data, size_t len,
 					 uint32_t src, void *priv)
     {
+#ifdef GPIO_MONITORING
+      /* turns on PIN 0 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data | 0x1;
+#endif
       (void)ept;
       (void)priv;
       (void)src;
@@ -90,6 +99,10 @@ namespace eprosima {
 	{
 	  UXR_WARNING("shutdown message is received", NULL);
 	  shutdown_req = 1;
+#ifdef GPIO_MONITORING
+	  /* turns off PIN 0 on GPIO channel 2 */
+	  gpio[2].data = gpio[2].data & ~(0x1);
+#endif
 	  return RPMSG_SUCCESS;
 	}
 
@@ -99,6 +112,10 @@ namespace eprosima {
 
       in_data_q.push(in_data);
 
+#ifdef GPIO_MONITORING
+      /* turns off PIN 0 on GPIO channel 2 */
+      gpio[2].data = gpio[2].data & ~(0x1);
+#endif
       return RPMSG_SUCCESS;
     }
 
@@ -149,6 +166,26 @@ namespace eprosima {
 
       /* micro-ROS first handshake message. */
       unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
+
+#ifdef GPIO_MONITORING
+      UXR_PRINTF("GPIO init....", NULL);
+      GPIO_fd = open("/dev/mem", O_RDWR | O_SYNC);
+      if (GPIO_fd <= 0)
+	{
+	  UXR_ERROR("Error opening /dev/mem.", strerror(errno));
+	  return false;
+	}
+
+      gpio = static_cast<GPIO_t*>(mmap(nullptr, gpio_size, PROT_READ|PROT_WRITE, MAP_SHARED, GPIO_fd, gpio_base));
+      if (!gpio)
+	{
+	  UXR_ERROR("Error using mmap.", strerror(errno));
+	  close(GPIO_fd);
+	  return false;
+	}
+
+      UXR_PRINTF("GPIO init successfully!", NULL);
+#endif
 
       UXR_PRINTF("Start RPMsg Initialization process...", NULL);
       UXR_PRINTF("openamp lib version: ", openamp_version());

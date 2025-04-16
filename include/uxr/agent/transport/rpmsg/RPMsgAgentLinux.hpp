@@ -27,6 +27,16 @@ extern "C" {
 #include <metal/alloc.h>
 #include <metal/version.h>
 
+#define GPIO_MONITORING
+
+#ifdef GPIO_MONITORING
+/* GPIO */
+#define NUM_GPIO 4
+
+#define gpio_base 0xa0000000
+#define gpio_size (sizeof(GPIO_t) * NUM_GPIO)
+#endif
+
 /* RPMsg max payload size values*/
 #define RPMSG_SERVICE_NAME         "rpmsg-openamp-demo-channel"
 #define SHUTDOWN_MSG 0xEF56A55A
@@ -42,6 +52,12 @@ struct rpmsg_in_data_t
   uint8_t *pt;
   size_t len;
 };
+
+#ifdef GPIO_MONITORING
+struct alignas(0x200) GPIO_t {
+  uint32_t	data;
+};
+#endif
 
 namespace eprosima {
   namespace uxr {
@@ -70,6 +86,11 @@ namespace eprosima {
       static unsigned long int * i_raw_data_ptr;
       static int shutdown_req;
       static std::queue<rpmsg_in_data_t> in_data_q;
+
+#ifdef GPIO_MONITORING
+      static int GPIO_fd;
+      static GPIO_t* gpio;
+#endif
 
     private:
 
