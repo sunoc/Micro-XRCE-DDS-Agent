@@ -85,7 +85,7 @@ namespace eprosima {
 					 uint32_t src, void *priv)
     {
 #ifdef GPIO_MONITORING
-      /* turns on PIN 0 on GPIO channel 2 */
+      /* turns on PIN 0 on GPIO channel 2 (yellow)*/
       gpio[2].data = gpio[2].data | 0x1;
 #endif
       (void)ept;
@@ -100,7 +100,7 @@ namespace eprosima {
 	  UXR_WARNING("shutdown message is received", NULL);
 	  shutdown_req = 1;
 #ifdef GPIO_MONITORING
-	  /* turns off PIN 0 on GPIO channel 2 */
+	  /* turns off PIN 0 on GPIO channel 2 (yellow)*/
 	  gpio[2].data = gpio[2].data & ~(0x1);
 #endif
 	  return RPMSG_SUCCESS;
@@ -113,7 +113,7 @@ namespace eprosima {
       in_data_q.push(in_data);
 
 #ifdef GPIO_MONITORING
-      /* turns off PIN 0 on GPIO channel 2 */
+      /* turns off PIN 0 on GPIO channel 2 (yellow)*/
       gpio[2].data = gpio[2].data & ~(0x1);
 #endif
       return RPMSG_SUCCESS;

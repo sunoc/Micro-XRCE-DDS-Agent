@@ -41,8 +41,8 @@ namespace eprosima {
 			   TransportRc& transport_rc)
     {
 #ifdef GPIO_MONITORING
-      /* turns on PIN 0 on GPIO channel 3 */
-      gpio[3].data = gpio[3].data | 0x1;
+      /* turns on PIN 1 on GPIO channel 1 (brown)*/
+      gpio[1].data = gpio[1].data | 0x2;
 #endif
       size_t ret = 0;
       ssize_t bytes_written;
@@ -57,8 +57,8 @@ namespace eprosima {
 	}
 
 #ifdef GPIO_MONITORING
-      /* turns off PIN 0 on GPIO channel 3 */
-      gpio[3].data = gpio[3].data & ~(0x1);
+      /* turns off PIN 1 on GPIO channel 1 (brown)*/
+      gpio[1].data = gpio[1].data & ~(0x2);
 #endif
       return ret;
     }
@@ -75,10 +75,6 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-#ifdef GPIO_MONITORING
-      /* turns on PIN 1 on GPIO channel 2 */
-      gpio[2].data = gpio[2].data | 0x2;
-#endif
       rpmsg_in_data_t in_data, in_data_trunk;
       std::queue<rpmsg_in_data_t> in_data_q_copy;
 
@@ -94,23 +90,37 @@ namespace eprosima {
 
       in_data = in_data_q.front();
 
-      /* usual case. */
+      UXR_PRINTF("len", len);
+      UXR_PRINTF("in_data.len", in_data.len);
+
+      /* trivial case */
       if ( in_data.len == len )
 	{
-	  for ( size_t i = 0; i<len; i++ )
+#ifdef GPIO_MONITORING
+	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+	  gpio[2].data = gpio[2].data | 0x2;
+#endif
+	  for ( size_t i = 0; i<len; ++i )
 	    {
-	      std::this_thread::sleep_for(std::chrono::microseconds(1));
+	      UXR_PRINTF("i", i);
 	      buf[i] = in_data.pt[i];
 	    }
 
 	  in_data_q.pop();
+#ifdef GPIO_MONITORING
+	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+	  gpio[2].data = gpio[2].data & ~(0x2);
+#endif
 	}
       /* received package "too big" */
       else if ( in_data.len > len )
 	{
-	  for ( size_t i = 0; i<len; i++ )
+#ifdef GPIO_MONITORING
+	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	  gpio[3].data = gpio[3].data | 0x1;
+#endif
+	  for ( size_t i = 0; i<len; ++i )
 	    {
-	      std::this_thread::sleep_for(std::chrono::microseconds(1));
 	      buf[i] = in_data.pt[i];
 	    }
 
@@ -121,7 +131,6 @@ namespace eprosima {
 	  /* Put the new first element in the queue copy. */
 	  while ( !in_data_q_copy.empty() )
 	    in_data_q_copy.pop();
-
 	  in_data_q_copy.push(in_data_trunk);
 	  in_data_q.pop();
 
@@ -142,27 +151,50 @@ namespace eprosima {
 	      in_data_q_copy.pop();
 	    }
 
+#ifdef GPIO_MONITORING
+	  /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	  gpio[3].data = gpio[3].data & ~(0x1);
+#endif
+
 	}
       /* not enough data received in the first package. */
-      else /* if ( in_data.len < len) */
+      else  //if ( in_data.len < len)
 	{
-	  for ( size_t i = 0; i<in_data.len; i++ )
+#ifdef GPIO_MONITORING
+	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
+	  gpio[3].data = gpio[3].data | 0x2;
+#endif
+
+	  // Read all the available data
+	  // WARNING THIS LOOP IS INSANELY SLOW !!!
+	  for ( size_t i = 0; i<in_data.len; ++i )
 	    {
-	      std::this_thread::sleep_for(std::chrono::microseconds(1));
+	      //std::this_thread::sleep_for(std::chrono::microseconds(1));
+	      UXR_PRINTF("i", i);
 	      buf[i] = in_data.pt[i];
 	    }
-
+#ifdef GPIO_MONITORING
+	      /* turns off PIN 0 on GPIO channel 3 (purple)*/
+	      gpio[3].data = gpio[3].data & ~(0x2);
+#endif
+	  // pop the "used" data
 	  in_data_q.pop();
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 1 on GPIO channel 2 */
-	  gpio[2].data = gpio[2].data & ~(0x2);
-#endif
-	  return in_data.len;
+
+	  // if there is no more data, return what we got.
+	  if ( in_data_q.empty() )
+	    return in_data.len;
+	  else
+	    {
+
+	      // Recursively call the read function
+	      // to get more data
+	      return read_data(
+			       buf+in_data.len,
+			       len-in_data.len,
+			       timeout,
+			       transport_rc) + in_data.len;
+	    }
 	}
-#ifdef GPIO_MONITORING
-      /* turns off PIN 1 on GPIO channel 2 */
-      gpio[2].data = gpio[2].data & ~(0x2);
-#endif
       return len;
     }
 
