@@ -36,7 +36,7 @@ namespace eprosima {
     struct rpmsg_endpoint RPMsgAgent::lept;
     unsigned long int * RPMsgAgent::i_raw_data_ptr;
     int RPMsgAgent::shutdown_req;
-    std::queue<rpmsg_in_data_t> RPMsgAgent::in_data_q;
+    std::deque<rpmsg_in_data_t> RPMsgAgent::in_data_q;
 
 #ifdef GPIO_MONITORING
     int RPMsgAgent::GPIO_fd;
@@ -110,7 +110,7 @@ namespace eprosima {
       in_data.pt = (uint8_t *)(i_raw_data_ptr);
       in_data.len = len;
 
-      in_data_q.push(in_data);
+      in_data_q.push_back(in_data);
 
 #ifdef GPIO_MONITORING
       /* turns off PIN 0 on GPIO channel 2 (yellow)*/

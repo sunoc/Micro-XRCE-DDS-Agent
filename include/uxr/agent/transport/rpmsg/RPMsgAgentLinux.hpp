@@ -13,9 +13,9 @@ extern "C" {
 #include <uxr/agent/transport/rpmsg/platform_info.h>
 }
 
+#include <deque>
 #include <iostream>
 #include <string>
-#include <queue>
 
 #include <cstdint>
 #include <cstddef>
@@ -85,7 +85,7 @@ namespace eprosima {
       static struct rpmsg_endpoint lept;
       static unsigned long int * i_raw_data_ptr;
       static int shutdown_req;
-      static std::queue<rpmsg_in_data_t> in_data_q;
+      static std::deque<rpmsg_in_data_t> in_data_q;
 
 #ifdef GPIO_MONITORING
       static int GPIO_fd;
