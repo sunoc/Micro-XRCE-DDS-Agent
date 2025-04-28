@@ -75,7 +75,8 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-      rpmsg_in_data_t in_data;
+      rpmsg_in_data_t in_data = in_data_q.front();
+      in_data_q.pop_front();
 
       if ( 0 >= timeout )
 	{
@@ -86,8 +87,6 @@ namespace eprosima {
 
       while ( in_data_q.empty() )
 	platform_poll(platform);
-
-      in_data = in_data_q.front();
 
       UXR_PRINTF("len", len);
       UXR_PRINTF("in_data.len", in_data.len);
@@ -101,7 +100,6 @@ namespace eprosima {
       printf("in_data.pt[0]: %x\r\n", in_data.pt[0]);
       printf("-----------------\r\n");
 
-      /* trivial case */
       if ( in_data.len == len )
 	{
 #ifdef GPIO_MONITORING
@@ -110,17 +108,15 @@ namespace eprosima {
 #endif
 	  for ( size_t i = 0; i<len; ++i )
 	    {
-	      UXR_PRINTF("len", len);
+	      //UXR_PRINTF("len", len);
 	      buf[i] = in_data.pt[i];
 	    }
 
-	  in_data_q.pop_front();
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data & ~(0x2);
 #endif
 	}
-      /* received package "too big" */
       else if ( in_data.len > len )
 	{
 #ifdef GPIO_MONITORING
@@ -129,16 +125,13 @@ namespace eprosima {
 #endif
 	  for ( size_t i = 0; i<len; ++i )
 	    {
-	      UXR_PRINTF("len", len);
+	      //UXR_PRINTF("len", len);
 	      buf[i] = in_data.pt[i];
 	    }
 
 	  /* Trunkate the first element of the queue. */
 	  in_data.len -=  len;
 	  in_data.pt  +=  (uint8_t)len;
-
-	  /* Remove the older first element from q. */
-	  in_data_q.pop_front();
 
 	  /* Put it back in the front of the queue. */
 	  in_data_q.push_front(in_data);
@@ -148,7 +141,6 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data & ~(0x1);
 #endif
 	}
-      /* not enough data received in the first package. */
       else  //if ( in_data.len < len)
 	{
 #ifdef GPIO_MONITORING
@@ -157,12 +149,9 @@ namespace eprosima {
 #endif
 	  for ( size_t i = 0; i<in_data.len; ++i )
 	    {
-	      UXR_PRINTF("in_data.len", in_data.len);
+	      //UXR_PRINTF("in_data.len", in_data.len);
 	      buf[i] = in_data.pt[i];
 	    }
-
-	  // pop the "used" data
-	  in_data_q.pop_front();
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (purple)*/
