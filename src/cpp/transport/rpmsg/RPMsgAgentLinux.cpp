@@ -75,6 +75,9 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
+      while ( in_data_q.empty() )
+	platform_poll(platform);
+
       rpmsg_in_data_t in_data = in_data_q.front();
       in_data_q.pop_front();
 
@@ -85,20 +88,9 @@ namespace eprosima {
 	  return 0;
 	}
 
-      while ( in_data_q.empty() )
-	platform_poll(platform);
-
       UXR_PRINTF("len", len);
       UXR_PRINTF("in_data.len", in_data.len);
-      printf("-----------------\r\n");
-      printf("buf: %x\r\n", buf);
-      buf[0] = 42;
-      printf("buf[0]: %x\r\n", buf[0]);
-      printf("-----------------\r\n");
-      printf("in_data.pt: %x\r\n", in_data.pt);
-      //in_data.pt[0] = 0x81;
-      printf("in_data.pt[0]: %x\r\n", in_data.pt[0]);
-      printf("-----------------\r\n");
+      printf("===== in_data.pt: 0x%x ====\r\n", in_data.pt);
 
       if ( in_data.len == len )
 	{
@@ -108,7 +100,7 @@ namespace eprosima {
 #endif
 	  for ( size_t i = 0; i<len; ++i )
 	    {
-	      //UXR_PRINTF("len", len);
+	      //UXR_PRINTF("i", i);
 	      buf[i] = in_data.pt[i];
 	    }
 
@@ -125,13 +117,13 @@ namespace eprosima {
 #endif
 	  for ( size_t i = 0; i<len; ++i )
 	    {
-	      //UXR_PRINTF("len", len);
+	      //UXR_PRINTF("i", i);
 	      buf[i] = in_data.pt[i];
 	    }
 
 	  /* Trunkate the first element of the queue. */
 	  in_data.len -=  len;
-	  in_data.pt  +=  (uint8_t)len;
+	  in_data.pt  +=  len;
 
 	  /* Put it back in the front of the queue. */
 	  in_data_q.push_front(in_data);
@@ -149,7 +141,7 @@ namespace eprosima {
 #endif
 	  for ( size_t i = 0; i<in_data.len; ++i )
 	    {
-	      //UXR_PRINTF("in_data.len", in_data.len);
+	      //UXR_PRINTF("i", i);
 	      buf[i] = in_data.pt[i];
 	    }
 
@@ -195,7 +187,6 @@ namespace eprosima {
 
       do
 	{
-	  UXR_PRINTF("calling the read_framed_msg thing...", NULL);
 	  bytes_read = framing_io_.read_framed_msg(
 						   buffer_,
 						   SERVER_BUFFER_SIZE,

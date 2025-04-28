@@ -34,7 +34,6 @@ namespace eprosima {
 
     /* Static global variables init. */
     struct rpmsg_endpoint RPMsgAgent::lept;
-    unsigned long int * RPMsgAgent::i_raw_data_ptr;
     int RPMsgAgent::shutdown_req;
     std::deque<rpmsg_in_data_t> RPMsgAgent::in_data_q;
 
@@ -92,7 +91,7 @@ namespace eprosima {
       (void)priv;
       (void)src;
       rpmsg_in_data_t in_data;
-      i_raw_data_ptr = (unsigned long int *)data;
+      unsigned long int *i_raw_data_ptr = (unsigned long int *)data;
 
       /* On reception of a shutdown we signal the application to terminate */
       if ( *(i_raw_data_ptr) == SHUTDOWN_MSG )
@@ -105,6 +104,10 @@ namespace eprosima {
 #endif
 	  return RPMSG_SUCCESS;
 	}
+
+      printf("copy data from 0x%x\r\n", i_raw_data_ptr);
+      // for ( size_t i = 0; i<len; ++i )
+      // 	copy_buf[i] = ((uint8_t *)(i_raw_data_ptr))[i];
 
       /* Put the data in a queue for the Agent read methode. */
       in_data.pt = (uint8_t *)(i_raw_data_ptr);
