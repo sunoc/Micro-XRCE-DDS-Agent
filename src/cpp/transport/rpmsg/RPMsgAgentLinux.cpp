@@ -92,6 +92,15 @@ namespace eprosima {
 
       UXR_PRINTF("len", len);
       UXR_PRINTF("in_data.len", in_data.len);
+      printf("-----------------\r\n");
+      printf("buf: %x\r\n", buf);
+      buf[0] = 42;
+      printf("buf[0]: %x\r\n", buf[0]);
+      printf("-----------------\r\n");
+      printf("in_data.pt: %x\r\n", in_data.pt);
+      //in_data.pt[0] = 0x81;
+      printf("in_data.pt[0]: %x\r\n", in_data.pt[0]);
+      printf("-----------------\r\n");
 
       /* trivial case */
       if ( in_data.len == len )
