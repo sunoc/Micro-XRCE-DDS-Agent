@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <openamp/rpmsg.h>
 #include <uxr/agent/transport/rpmsg/TermiosAgentLinux.hpp>
 
 namespace eprosima {
@@ -90,28 +91,20 @@ namespace eprosima {
       (void)ept;
       (void)priv;
       (void)src;
+      volatile uint8_t *input_data = (uint8_t *)data;
       rpmsg_in_data_t in_data;
-      unsigned long int *i_raw_data_ptr = (unsigned long int *)data;
-
-      /* On reception of a shutdown we signal the application to terminate */
-      if ( *(i_raw_data_ptr) == SHUTDOWN_MSG )
-	{
-	  UXR_WARNING("shutdown message is received", NULL);
-	  shutdown_req = 1;
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 0 on GPIO channel 2 (yellow)*/
-	  gpio[2].data = gpio[2].data & ~(0x1);
-#endif
-	  return RPMSG_SUCCESS;
-	}
-
-      printf("copy data from 0x%x\r\n", i_raw_data_ptr);
-      // for ( size_t i = 0; i<len; ++i )
-      // 	copy_buf[i] = ((uint8_t *)(i_raw_data_ptr))[i];
 
       /* Put the data in a queue for the Agent read methode. */
-      in_data.pt = (uint8_t *)(i_raw_data_ptr);
       in_data.len = len;
+      in_data.pt = (uint8_t *)std::malloc(len * sizeof(uint8_t));
+      if ( NULL == in_data.pt)
+	{
+	  UXR_ERROR("Malloc failed: ", strerror(ETIME));
+	  return -1;
+	}
+
+      for ( size_t i = 0; i<len; i++ )
+	in_data.pt[i] = input_data[i];
 
       in_data_q.push_back(in_data);
 

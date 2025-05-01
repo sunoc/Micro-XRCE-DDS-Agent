@@ -83,7 +83,6 @@ namespace eprosima {
 
       /* Static variables for static class methods. */
       static struct rpmsg_endpoint lept;
-      static unsigned long int * i_raw_data_ptr;
       static int shutdown_req;
       static std::deque<rpmsg_in_data_t> in_data_q;
 

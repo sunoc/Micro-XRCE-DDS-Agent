@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
 #include <uxr/agent/utils/Conversion.hpp>
 #include <uxr/agent/logger/Logger.hpp>
@@ -88,21 +89,14 @@ namespace eprosima {
 	  return 0;
 	}
 
-      UXR_PRINTF("len", len);
-      UXR_PRINTF("in_data.len", in_data.len);
-      printf("===== in_data.pt: 0x%x ====\r\n", in_data.pt);
-
       if ( in_data.len == len )
 	{
 #ifdef GPIO_MONITORING
 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  for ( size_t i = 0; i<len; ++i )
-	    {
-	      //UXR_PRINTF("i", i);
-	      buf[i] = in_data.pt[i];
-	    }
+	  for ( size_t i = 0; i<len; i++ )
+	    buf[i] = in_data.pt[i];
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
@@ -115,11 +109,8 @@ namespace eprosima {
 	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
 	  gpio[3].data = gpio[3].data | 0x1;
 #endif
-	  for ( size_t i = 0; i<len; ++i )
-	    {
-	      //UXR_PRINTF("i", i);
-	      buf[i] = in_data.pt[i];
-	    }
+	  for ( size_t i = 0; i<len; i++ )
+	    buf[i] = in_data.pt[i];
 
 	  /* Trunkate the first element of the queue. */
 	  in_data.len -=  len;
@@ -139,11 +130,8 @@ namespace eprosima {
 	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data | 0x2;
 #endif
-	  for ( size_t i = 0; i<in_data.len; ++i )
-	    {
-	      //UXR_PRINTF("i", i);
-	      buf[i] = in_data.pt[i];
-	    }
+	  for ( size_t i = 0; i<in_data.len; i++ )
+	    buf[i] = in_data.pt[i];
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (purple)*/
