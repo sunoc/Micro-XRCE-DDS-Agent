@@ -36,7 +36,7 @@ namespace eprosima {
     /* Static global variables init. */
     struct rpmsg_endpoint RPMsgAgent::lept;
     int RPMsgAgent::shutdown_req;
-    std::deque<rpmsg_in_data_t> RPMsgAgent::in_data_q;
+    std::deque<rpmsg_rcv_msg *> RPMsgAgent::rpmsg_rcv_msg_q;
 
 #ifdef GPIO_MONITORING
     int RPMsgAgent::GPIO_fd;
@@ -91,22 +91,23 @@ namespace eprosima {
       (void)ept;
       (void)priv;
       (void)src;
-      volatile uint8_t *input_data = (uint8_t *)data;
-      rpmsg_in_data_t in_data;
+      struct rpmsg_rcv_msg *rpmsg_node;
 
-      /* Put the data in a queue for the Agent read methode. */
-      in_data.len = len;
-      in_data.pt = (uint8_t *)std::malloc(len * sizeof(uint8_t));
-      if ( NULL == in_data.pt)
+      rpmsg_node = (rpmsg_rcv_msg *)metal_allocate_memory(sizeof(*rpmsg_node));
+      if (!rpmsg_node)
 	{
 	  UXR_ERROR("Malloc failed: ", strerror(ETIME));
 	  return -1;
 	}
 
-      for ( size_t i = 0; i<len; i++ )
-	in_data.pt[i] = input_data[i];
+      rpmsg_hold_rx_buffer(ept, data);
+      rpmsg_node->ept  = ept;
+      rpmsg_node->data = data;
+      rpmsg_node->len  = len;
+      rpmsg_node->next = NULL;
 
-      in_data_q.push_back(in_data);
+
+      rpmsg_rcv_msg_q.push_back(rpmsg_node);
 
 #ifdef GPIO_MONITORING
       /* turns off PIN 0 on GPIO channel 2 (yellow)*/

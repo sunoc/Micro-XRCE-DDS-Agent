@@ -47,10 +47,11 @@ extern "C" {
 #define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
 
 /* Buffer between the cb and the read function */
-struct rpmsg_in_data_t
-{
-  uint8_t *pt;
-  size_t len;
+struct rpmsg_rcv_msg {
+	void * data;
+	size_t len;
+	struct rpmsg_endpoint *ept;
+	struct rpmsg_rcv_msg *next;
 };
 
 #ifdef GPIO_MONITORING
@@ -84,7 +85,7 @@ namespace eprosima {
       /* Static variables for static class methods. */
       static struct rpmsg_endpoint lept;
       static int shutdown_req;
-      static std::deque<rpmsg_in_data_t> in_data_q;
+      static std::deque<rpmsg_rcv_msg *>rpmsg_rcv_msg_q;
 
 #ifdef GPIO_MONITORING
       static int GPIO_fd;
