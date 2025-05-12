@@ -48,10 +48,10 @@ extern "C" {
 
 /* Buffer between the cb and the read function */
 struct rpmsg_rcv_msg {
-	void * data;
-	size_t len;
-	struct rpmsg_endpoint *ept;
-	struct rpmsg_rcv_msg *next;
+  uint8_t * data;
+  size_t len;
+  struct rpmsg_endpoint *ept;
+  uint8_t * full_payload;
 };
 
 #ifdef GPIO_MONITORING

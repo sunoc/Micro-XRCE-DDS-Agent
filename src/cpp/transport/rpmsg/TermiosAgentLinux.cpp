@@ -88,9 +88,9 @@ namespace eprosima {
       /* turns on PIN 0 on GPIO channel 2 (yellow)*/
       gpio[2].data = gpio[2].data | 0x1;
 #endif
-      (void)ept;
-      (void)priv;
       (void)src;
+      (void)priv;
+
       struct rpmsg_rcv_msg *rpmsg_node;
 
       rpmsg_node = (rpmsg_rcv_msg *)metal_allocate_memory(sizeof(*rpmsg_node));
@@ -102,10 +102,9 @@ namespace eprosima {
 
       rpmsg_hold_rx_buffer(ept, data);
       rpmsg_node->ept  = ept;
-      rpmsg_node->data = data;
+      rpmsg_node->data = (uint8_t *)data;
       rpmsg_node->len  = len;
-      rpmsg_node->next = NULL;
-
+      rpmsg_node->full_payload = (uint8_t *)data;
 
       rpmsg_rcv_msg_q.push_back(rpmsg_node);
 

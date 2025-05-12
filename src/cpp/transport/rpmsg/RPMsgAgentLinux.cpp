@@ -82,6 +82,8 @@ namespace eprosima {
       struct rpmsg_rcv_msg *in_data = rpmsg_rcv_msg_q.front();
       rpmsg_rcv_msg_q.pop_front();
 
+      volatile uint8_t* r_payload = in_data->data;
+
       if ( 0 >= timeout )
 	{
 	  UXR_WARNING("Read timeout: ", strerror(ETIME));
@@ -96,7 +98,10 @@ namespace eprosima {
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
 	  for ( size_t i = 0; i<len; i++ )
-	    buf[i] = ((uint8_t *)(in_data->data))[i];
+	    buf[i] = r_payload[i];
+
+	  /* All data has been used, can release it. */
+	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
@@ -110,7 +115,7 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data | 0x1;
 #endif
 	  for ( size_t i = 0; i<len; i++ )
-	    buf[i] = ((uint8_t *)(in_data->data))[i];
+	    buf[i] = r_payload[i];
 
 	  /* Trunkate the first element of the queue. */
 	  in_data->len   -=  len;
@@ -131,29 +136,23 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data | 0x2;
 #endif
 	  for ( size_t i = 0; i<in_data->len; i++ )
-	    buf[i] = ((uint8_t *)(in_data->data))[i];
+	    buf[i] = r_payload[i];
+
+	  /* All data has been used, can release it. */
+	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data & ~(0x2);
 #endif
-	  // if there is no more data, return what we got.
-	  if ( rpmsg_rcv_msg_q.empty() )
-	    {
-	      UXR_WARNING("Not enough data was received.", in_data->len);
-	      return in_data->len;
-	    }
-	  else
-	    {
 
-	      // Recursively call the read function
-	      // to get more data
-	      return read_data(
-			       buf+(uint8_t)in_data->len,
-			       len-in_data->len,
-			       timeout,
-			       transport_rc) + in_data->len;
-	    }
+	  // Recursively call the read function
+	  // to get more data
+	  return read_data(
+			   buf+(uint8_t)in_data->len,
+			   len-in_data->len,
+			   timeout,
+			   transport_rc) + in_data->len;
 	}
 
       return len;
