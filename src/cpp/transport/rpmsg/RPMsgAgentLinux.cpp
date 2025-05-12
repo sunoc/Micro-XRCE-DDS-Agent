@@ -82,8 +82,6 @@ namespace eprosima {
       struct rpmsg_rcv_msg *in_data = rpmsg_rcv_msg_q.front();
       rpmsg_rcv_msg_q.pop_front();
 
-      volatile uint8_t* r_payload = in_data->data;
-
       if ( 0 >= timeout )
 	{
 	  UXR_WARNING("Read timeout: ", strerror(ETIME));
@@ -98,7 +96,7 @@ namespace eprosima {
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
 	  for ( size_t i = 0; i<len; i++ )
-	    buf[i] = r_payload[i];
+	    buf[i] = in_data->data[i];
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
@@ -115,7 +113,7 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data | 0x1;
 #endif
 	  for ( size_t i = 0; i<len; i++ )
-	    buf[i] = r_payload[i];
+	    buf[i] = in_data->data[i];
 
 	  /* Trunkate the first element of the queue. */
 	  in_data->len   -=  len;
@@ -136,7 +134,7 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data | 0x2;
 #endif
 	  for ( size_t i = 0; i<in_data->len; i++ )
-	    buf[i] = r_payload[i];
+	    buf[i] = in_data->data[i];
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
