@@ -93,6 +93,7 @@ namespace eprosima {
 
       struct rpmsg_rcv_msg *rpmsg_node;
 
+      // TODO: see if the malloc is slow
       rpmsg_node = (rpmsg_rcv_msg *)metal_allocate_memory(sizeof(*rpmsg_node));
       if (!rpmsg_node)
 	{
