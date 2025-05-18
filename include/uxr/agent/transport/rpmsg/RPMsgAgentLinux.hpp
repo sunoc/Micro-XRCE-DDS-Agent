@@ -98,6 +98,8 @@ namespace eprosima {
 
       virtual bool fini() = 0;
 
+      void aligned_copy(size_t len, uint8_t *src, uint8_t *dst);
+
       bool recv_message(
 			InputPacket<RPMsgEndPoint>& input_packet,
 			int timeout,

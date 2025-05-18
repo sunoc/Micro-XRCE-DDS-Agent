@@ -32,6 +32,49 @@ namespace eprosima {
 
     /**************************************************************************
      *
+     * @brief   Trying to copy data in a faster way, by aligning with 32bits
+     *          blocks as much as possible.
+     *
+     * @param	len: data length to be copied
+     *          src: pointer for data source
+     *          dst: pointer for data destination
+     *
+     * @return	void
+     *
+     * @note	None.
+     *
+     **************************************************************************/
+    void
+    RPMsgAgent::aligned_copy(size_t len, uint8_t *src, uint8_t *dst)
+    {
+      /* Copy data byte by byte until aligned */
+      while ( len && (
+		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
+		      (((uintptr_t)src) % sizeof(uint32_t))))
+	{
+	  *dst = *src;
+	  dst++;
+	  src++;
+	  len--;
+	}
+
+      /* Copy data by 32bits. */
+      for (; (uint32_t)len >= (uint32_t)sizeof(uint32_t); dst += sizeof(uint32_t),
+	     src += sizeof(uint32_t),
+	     len -= sizeof(uint32_t))
+	{
+	  *(uint32_t *)dst = *(const uint32_t *)src;
+	}
+
+      /* Leftover data copied again bytes by byte. */
+      for (; len != 0; dst++, src++, len--)
+	{
+	  *dst = *src;
+	}
+    }
+
+    /**************************************************************************
+     *
      * @brief        Basic usage of the rpmsg_send function directly.
      *
      **************************************************************************/
@@ -95,8 +138,7 @@ namespace eprosima {
 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  for ( size_t i = 0; i<len; i++ )
-	    buf[i] = in_data->data[i];
+	  aligned_copy(len, in_data->data, buf);
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
@@ -112,8 +154,7 @@ namespace eprosima {
 	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
 	  gpio[3].data = gpio[3].data | 0x1;
 #endif
-	  for ( size_t i = 0; i<len; i++ )
-	    buf[i] = in_data->data[i];
+	  aligned_copy(len, in_data->data, buf);
 
 	  /* Trunkate the first element of the queue. */
 	  in_data->len   -=  len;
@@ -133,8 +174,7 @@ namespace eprosima {
 	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data | 0x2;
 #endif
-	  for ( size_t i = 0; i<in_data->len; i++ )
-	    buf[i] = in_data->data[i];
+	  aligned_copy(in_data->len, in_data->data, buf);
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
@@ -144,13 +184,8 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data & ~(0x2);
 #endif
 
-	  // Recursively call the read function
-	  // to get more data
-	  return read_data(
-			   buf+(uint8_t)in_data->len,
-			   len-in_data->len,
-			   timeout,
-			   transport_rc) + in_data->len;
+	  /* Return the length we have. */
+	  return in_data->len;
 	}
 
       return len;
@@ -179,7 +214,6 @@ namespace eprosima {
 						   remote_addr,
 						   timeout,
 						   transport_rc);
-	  UXR_PRINTF("... framed_msg got some data", bytes_read);
 	}
       while ( (0 == bytes_read) && (0 < timeout) );
 
