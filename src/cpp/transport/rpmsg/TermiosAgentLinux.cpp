@@ -91,22 +91,23 @@ namespace eprosima {
       (void)src;
       (void)priv;
 
-      struct rpmsg_rcv_msg *rpmsg_node;
+      struct rpmsg_rcv_msg *pl;
 
-      rpmsg_node = (rpmsg_rcv_msg *)metal_allocate_memory(sizeof(*rpmsg_node));
-      if (!rpmsg_node)
+      pl = (rpmsg_rcv_msg *)metal_allocate_memory(sizeof(*pl));
+      if (!pl)
 	{
 	  UXR_ERROR("Malloc failed: ", strerror(ETIME));
 	  return -1;
 	}
 
       rpmsg_hold_rx_buffer(ept, data);
-      rpmsg_node->ept  = ept;
-      rpmsg_node->data = (uint8_t *)data;
-      rpmsg_node->len  = len;
-      rpmsg_node->full_payload = (uint8_t *)data;
 
-      rpmsg_rcv_msg_q.push_back(rpmsg_node);
+      pl->ept  = ept;
+      pl->data = (uint8_t *)data;
+      pl->len  = len;
+      pl->full_payload = (uint8_t *)data;
+
+      rpmsg_rcv_msg_q.push_back(pl);
 
 #ifdef GPIO_MONITORING
       /* turns off PIN 0 on GPIO channel 2 (yellow)*/

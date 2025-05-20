@@ -27,7 +27,7 @@ extern "C" {
 #include <metal/alloc.h>
 #include <metal/version.h>
 
-#define GPIO_MONITORING
+//#define GPIO_MONITORING
 
 #ifdef GPIO_MONITORING
 /* GPIO */

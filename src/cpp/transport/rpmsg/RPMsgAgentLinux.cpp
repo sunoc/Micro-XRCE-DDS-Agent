@@ -119,18 +119,20 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-      while ( rpmsg_rcv_msg_q.empty() )
-	platform_poll(platform);
-
-      struct rpmsg_rcv_msg *in_data = rpmsg_rcv_msg_q.front();
-      rpmsg_rcv_msg_q.pop_front();
+      struct rpmsg_rcv_msg *in_data;
 
       if ( 0 >= timeout )
 	{
-	  UXR_WARNING("Read timeout: ", strerror(ETIME));
+	  UXR_ERROR("Read timeout: ", strerror(ETIME));
 	  transport_rc = TransportRc::timeout_error;
 	  return 0;
 	}
+
+      while ( rpmsg_rcv_msg_q.empty() )
+	platform_poll(platform);
+
+      in_data = rpmsg_rcv_msg_q.front();
+      rpmsg_rcv_msg_q.pop_front();
 
       if ( in_data->len == len )
 	{
@@ -141,7 +143,9 @@ namespace eprosima {
 	  aligned_copy(len, in_data->data, buf);
 
 	  /* All data has been used, can release it. */
+	  //metal_free_memory(in_data);
 	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
+
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
@@ -160,7 +164,6 @@ namespace eprosima {
 	  in_data->len   -=  len;
 	  in_data->data  +=  len;
 
-	  /* Put it back in the front of the queue. */
 	  rpmsg_rcv_msg_q.push_front(in_data);
 
 #ifdef GPIO_MONITORING
@@ -177,7 +180,9 @@ namespace eprosima {
 	  aligned_copy(in_data->len, in_data->data, buf);
 
 	  /* All data has been used, can release it. */
+	  //metal_free_memory(in_data);
 	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
+
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (purple)*/
