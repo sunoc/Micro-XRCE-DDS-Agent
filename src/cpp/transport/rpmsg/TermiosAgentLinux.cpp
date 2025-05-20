@@ -223,16 +223,6 @@ namespace eprosima {
 	  return false;
 	}
 
-      i_payload = (uint8_t *)metal_allocate_memory(2 * sizeof(unsigned long) +
-						   max_size);
-
-      if ( !i_payload )
-	{
-	  UXR_ERROR("memory allocation failed.", strerror(errno));
-	  rpmsg_destroy_ept(&lept);
-	  return false;
-	}
-
       while ( !is_rpmsg_ept_ready(&lept) )
 	platform_poll(platform);
 
@@ -259,7 +249,6 @@ namespace eprosima {
       UXR_PRINTF("Start RPMsg Finishing process...", NULL);
 
       rpmsg_destroy_ept(&lept);
-      metal_free_memory(i_payload);
 
       platform_release_rpmsg_vdev(rpdev, platform);
       platform_cleanup(platform);
