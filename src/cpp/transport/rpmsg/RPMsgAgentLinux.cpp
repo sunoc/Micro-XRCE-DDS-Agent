@@ -119,7 +119,7 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-      struct rpmsg_rcv_msg *in_data;
+      struct rpmsg_rcv_msg in_data;
 
       if ( 0 >= timeout )
 	{
@@ -131,58 +131,58 @@ namespace eprosima {
       while ( rpmsg_rcv_msg_q.empty() )
 	platform_poll(platform);
 
+      //pthread_mutex_lock(&rd_mutex);
       in_data = rpmsg_rcv_msg_q.front();
       rpmsg_rcv_msg_q.pop_front();
+      //pthread_mutex_unlock(&rd_mutex);
 
-      if ( in_data->len == len )
+      if ( in_data.len == len )
 	{
 #ifdef GPIO_MONITORING
 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  aligned_copy(len, in_data->data, buf);
+	  aligned_copy(len, in_data.data, buf);
 
 	  /* All data has been used, can release it. */
-	  //metal_free_memory(in_data);
-	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
-
+	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data & ~(0x2);
 #endif
 	}
-      else if ( in_data->len > len )
+      else if ( in_data.len > len )
 	{
 #ifdef GPIO_MONITORING
 	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
 	  gpio[3].data = gpio[3].data | 0x1;
 #endif
-	  aligned_copy(len, in_data->data, buf);
+	  aligned_copy(len, in_data.data, buf);
 
 	  /* Trunkate the first element of the queue. */
-	  in_data->len   -=  len;
-	  in_data->data  +=  len;
+	  in_data.len   -=  len;
+	  in_data.data  +=  len;
 
+	  pthread_mutex_lock(&rd_mutex);
 	  rpmsg_rcv_msg_q.push_front(in_data);
+	  pthread_mutex_unlock(&rd_mutex);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (blue)*/
 	  gpio[3].data = gpio[3].data & ~(0x1);
 #endif
 	}
-      else  //if ( in_data->len < len)
+      else  //if ( in_data.len < len)
 	{
 #ifdef GPIO_MONITORING
 	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data | 0x2;
 #endif
-	  aligned_copy(in_data->len, in_data->data, buf);
+	  aligned_copy(in_data.len, in_data.data, buf);
 
 	  /* All data has been used, can release it. */
-	  //metal_free_memory(in_data);
-	  rpmsg_release_rx_buffer(in_data->ept, in_data->full_payload);
-
+	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (purple)*/
@@ -190,7 +190,7 @@ namespace eprosima {
 #endif
 
 	  /* Return the length we have. */
-	  return in_data->len;
+	  return in_data.len;
 	}
 
       return len;

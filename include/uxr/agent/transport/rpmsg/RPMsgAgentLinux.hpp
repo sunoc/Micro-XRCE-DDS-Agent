@@ -16,6 +16,7 @@ extern "C" {
 #include <deque>
 #include <iostream>
 #include <string>
+#include <pthread.h>
 
 #include <cstdint>
 #include <cstddef>
@@ -51,7 +52,7 @@ struct rpmsg_rcv_msg {
   uint8_t * data;
   size_t len;
   struct rpmsg_endpoint *ept;
-  uint8_t * full_payload;
+  void * full_payload;
 };
 
 #ifdef GPIO_MONITORING
@@ -85,7 +86,9 @@ namespace eprosima {
       /* Static variables for static class methods. */
       static struct rpmsg_endpoint lept;
       static int shutdown_req;
-      static std::deque<rpmsg_rcv_msg *>rpmsg_rcv_msg_q;
+
+      static std::deque<rpmsg_rcv_msg>rpmsg_rcv_msg_q;
+      static pthread_mutex_t rd_mutex;
 
 #ifdef GPIO_MONITORING
       static int GPIO_fd;

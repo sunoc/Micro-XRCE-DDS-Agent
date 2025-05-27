@@ -36,43 +36,15 @@ namespace eprosima {
     /* Static global variables init. */
     struct rpmsg_endpoint RPMsgAgent::lept;
     int RPMsgAgent::shutdown_req;
-    std::deque<rpmsg_rcv_msg *> RPMsgAgent::rpmsg_rcv_msg_q;
+
+    /* Read message queue variables */
+    std::deque<rpmsg_rcv_msg> RPMsgAgent::rpmsg_rcv_msg_q;
+    pthread_mutex_t RPMsgAgent::rd_mutex;
 
 #ifdef GPIO_MONITORING
     int RPMsgAgent::GPIO_fd;
     GPIO_t* RPMsgAgent::gpio;
 #endif
-
-    /**************************************************************************
-     *
-     * @brief        This function goal is to send a shutdown package
-     *               to the micro-ROS client in order to stop it.
-     *
-     * @param	fd: the file descriptor for where to send the message
-     *
-     * @return	void
-     *
-     * @note		None.
-     *
-     **************************************************************************/
-    void
-    TermiosRPMsgAgent::send_shutdown(int filedescriptor)
-    {
-      ssize_t bytes_sent = -1;
-      unsigned int umsg[8] =
-	{
-	  SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG,
-	  SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG
-	};
-
-      UXR_WARNING("Sending shutdown message.", NULL);
-
-      bytes_sent = ::write(filedescriptor, &umsg, sizeof(umsg));
-      if ( 0 >= bytes_sent )
-	{
-	  UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno));
-	}
-    }
 
     /**************************************************************************
      *
@@ -91,23 +63,17 @@ namespace eprosima {
       (void)src;
       (void)priv;
 
-      struct rpmsg_rcv_msg *pl;
-
-      pl = (rpmsg_rcv_msg *)metal_allocate_memory(sizeof(*pl));
-      if (!pl)
-	{
-	  UXR_ERROR("Malloc failed: ", strerror(ETIME));
-	  return -1;
-	}
+      struct rpmsg_rcv_msg pl;
 
       rpmsg_hold_rx_buffer(ept, data);
+      pl.ept  = ept;
+      pl.data = (uint8_t *)data;
+      pl.len  = len;
+      pl.full_payload = data;
 
-      pl->ept  = ept;
-      pl->data = (uint8_t *)data;
-      pl->len  = len;
-      pl->full_payload = (uint8_t *)data;
-
+      pthread_mutex_lock(&rd_mutex);
       rpmsg_rcv_msg_q.push_back(pl);
+      pthread_mutex_unlock(&rd_mutex);
 
 #ifdef GPIO_MONITORING
       /* turns off PIN 0 on GPIO channel 2 (yellow)*/
@@ -183,6 +149,8 @@ namespace eprosima {
 
       UXR_PRINTF("GPIO init successfully!", NULL);
 #endif
+      UXR_PRINTF("Read mutex Initialization", NULL);
+      rd_mutex = PTHREAD_MUTEX_INITIALIZER;
 
       UXR_PRINTF("Start RPMsg Initialization process...", NULL);
       UXR_PRINTF("openamp lib version: ", openamp_version());
@@ -237,6 +205,37 @@ namespace eprosima {
 
       UXR_PRINTF("RPMsg init is successful.", NULL);
       return true;
+    }
+
+    /**************************************************************************
+     *
+     * @brief        This function goal is to send a shutdown package
+     *               to the micro-ROS client in order to stop it.
+     *
+     * @param	fd: the file descriptor for where to send the message
+     *
+     * @return	void
+     *
+     * @note		None.
+     *
+     **************************************************************************/
+    void
+    TermiosRPMsgAgent::send_shutdown(int filedescriptor)
+    {
+      ssize_t bytes_sent = -1;
+      unsigned int umsg[8] =
+	{
+	  SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG,
+	  SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG, SHUTDOWN_MSG
+	};
+
+      UXR_WARNING("Sending shutdown message.", NULL);
+
+      bytes_sent = ::write(filedescriptor, &umsg, sizeof(umsg));
+      if ( 0 >= bytes_sent )
+	{
+	  UXR_ERROR("Failed to write SHUTDOWN_MSG", strerror(errno));
+	}
     }
 
     /**************************************************************************
