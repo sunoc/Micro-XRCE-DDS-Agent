@@ -314,21 +314,10 @@ void TermiosRPMsgAgent::lookup_channel(char *out, rpmsg_endpoint_info *pep)
 	  return;
 	}
 
-	UXR_PRINTF("1", NULL);
 	while ((ent = readdir(dir)) != NULL) {
-	        UXR_PRINTF("2", NULL);
-	        // UXR_PRINTF("check names for ent", ent->d_name);
-		// UXR_PRINTF("and for pep", pep->name);
 		if (strstr(ent->d_name, pep->name)) {
-		  // UXR_PRINTF("strcpy to", out);
-		  // UXR_PRINTF("strcpy from", ent->d_name);
-		  UXR_PRINTF("3", NULL);
 		  strncpy(out, ent->d_name, NAME_MAX+1);
-		  // UXR_PRINTF("set src dest", NULL);
-		  UXR_PRINTF("4", NULL);
 		  set_src_dst(out, pep);
-		  // UXR_PRINTF("using dev file", out);
-		  UXR_PRINTF("5", NULL);
 		  closedir(dir);
 		  return;
 		}
@@ -347,14 +336,9 @@ bool TermiosRPMsgAgent::init()
     unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
 
     // Init the endpoint structure that exists at the class level
-    // eptinfo.name = "rpmsg-openamp-demo-channel";
-    // eptinfo.src = 0;
-    // eptinfo.dst = 0;
-    // rpmsg_dev = "virtio0.rpmsg-openamp-demo-channel.-1.0";
     strcpy(rpmsg_dev,"virtio0.rpmsg-openamp-demo-channel.-1.0");
 
     ret = system("set -x; modprobe rpmsg_char");
-    // ret = system("set -x; lsmod; modprobe rpmsg_char");
     if (ret < 0)
       {
 	UXR_ERROR("Failed to load rpmsg_char driver.", ret);
