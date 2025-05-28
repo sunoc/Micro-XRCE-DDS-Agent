@@ -34,7 +34,6 @@ TermiosRPMsgAgent::~TermiosRPMsgAgent()
     }
 }
 
-
 /*******************************************************************************
 *
 * @brief        This function goal is to send a shutdown package

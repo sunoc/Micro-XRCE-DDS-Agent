@@ -99,8 +99,6 @@ namespace eprosima {
 	  *((uint32_t*)udmabuf0 + long_cnt) = *((uint32_t*)buf + long_cnt);
 	  long_cnt++;
 	}
-      // for (size_t i = 0; i<len; i++)
-      // 	  ((uint8_t *)udmabuf0)[i] = buf[i];
 
       /* Put the length and physical addr in the rpmsg buf.
 	 Note that the offset udmabuff address is NOT sent. */
@@ -176,7 +174,7 @@ namespace eprosima {
 	  if ( 8 == rpmsg_queue.size() )
 	    break;
 	  /* Else */
-	  usleep(10);
+	  usleep(5);
 
 	  attempts--;
 	  if ( 0 >= attempts )
@@ -248,17 +246,6 @@ namespace eprosima {
 
       try
 	{
-
-	  // do
-	  // 	{
-	  // 	  bytes_read = framing_io_.read_framed_msg( buffer_,
-	  // 						    SERVER_BUFFER_SIZE,
-	  // 						    remote_addr,
-	  // 						    timeout,
-	  // 						    transport_rc);
-	  // 	}
-	  // while ((0 == bytes_read) && (0 < timeout));
-
 	  bytes_read = read_data(
 				 buffer_,
 				 SERVER_BUFFER_SIZE,
@@ -313,12 +300,6 @@ namespace eprosima {
 			     TransportRc& transport_rc)
     {
       bool rv = false;
-      // ssize_t bytes_written =
-      // 	framing_io_.write_framed_msg(
-      // 				     output_packet.message->get_buf(),
-      // 				     output_packet.message->get_len(),
-      // 				     output_packet.destination.get_addr(),
-      // 				     transport_rc);
       try
 	{
 	  ssize_t bytes_written = write_data(
