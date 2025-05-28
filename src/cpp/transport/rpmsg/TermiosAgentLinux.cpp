@@ -39,7 +39,6 @@ namespace eprosima {
 
     /* Read message queue variables */
     std::deque<rpmsg_rcv_msg> RPMsgAgent::rpmsg_rcv_msg_q;
-    pthread_mutex_t RPMsgAgent::rd_mutex;
 
 #ifdef GPIO_MONITORING
     int RPMsgAgent::GPIO_fd;
@@ -71,9 +70,7 @@ namespace eprosima {
       pl.len  = len;
       pl.full_payload = data;
 
-      pthread_mutex_lock(&rd_mutex);
       rpmsg_rcv_msg_q.push_back(pl);
-      pthread_mutex_unlock(&rd_mutex);
 
 #ifdef GPIO_MONITORING
       /* turns off PIN 0 on GPIO channel 2 (yellow)*/
@@ -149,8 +146,6 @@ namespace eprosima {
 
       UXR_PRINTF("GPIO init successfully!", NULL);
 #endif
-      UXR_PRINTF("Read mutex Initialization", NULL);
-      rd_mutex = PTHREAD_MUTEX_INITIALIZER;
 
       UXR_PRINTF("Start RPMsg Initialization process...", NULL);
       UXR_PRINTF("openamp lib version: ", openamp_version());

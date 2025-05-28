@@ -120,6 +120,7 @@ namespace eprosima {
 			  TransportRc& transport_rc)
     {
       struct rpmsg_rcv_msg in_data;
+        unsigned int metal_irq_flag;
 
       if ( 0 >= timeout )
 	{
@@ -131,10 +132,12 @@ namespace eprosima {
       while ( rpmsg_rcv_msg_q.empty() )
 	platform_poll(platform);
 
-      //pthread_mutex_lock(&rd_mutex);
+      /* Disabling remoteproc interrupts when
+	 accessing the queue. */
+      metal_irq_flag = metal_irq_save_disable();
       in_data = rpmsg_rcv_msg_q.front();
       rpmsg_rcv_msg_q.pop_front();
-      //pthread_mutex_unlock(&rd_mutex);
+      metal_irq_restore_enable(metal_irq_flag);
 
       if ( in_data.len == len )
 	{
@@ -164,9 +167,11 @@ namespace eprosima {
 	  in_data.len   -=  len;
 	  in_data.data  +=  len;
 
-	  pthread_mutex_lock(&rd_mutex);
+	  /* Disabling remoteproc interrupts when
+	     accessing the queue. */
+	  metal_irq_flag = metal_irq_save_disable();
 	  rpmsg_rcv_msg_q.push_front(in_data);
-	  pthread_mutex_unlock(&rd_mutex);
+	  metal_irq_restore_enable(metal_irq_flag);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 0 on GPIO channel 3 (blue)*/

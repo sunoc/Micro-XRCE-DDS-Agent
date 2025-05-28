@@ -27,6 +27,7 @@ extern "C" {
 #include <openamp/version.h>
 #include <metal/alloc.h>
 #include <metal/version.h>
+#include <metal/irq.h>
 
 //#define GPIO_MONITORING
 
@@ -88,7 +89,6 @@ namespace eprosima {
       static int shutdown_req;
 
       static std::deque<rpmsg_rcv_msg>rpmsg_rcv_msg_q;
-      static pthread_mutex_t rd_mutex;
 
 #ifdef GPIO_MONITORING
       static int GPIO_fd;
