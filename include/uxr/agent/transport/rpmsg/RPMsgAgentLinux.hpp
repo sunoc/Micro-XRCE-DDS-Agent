@@ -29,7 +29,7 @@ extern "C" {
 #include <metal/version.h>
 #include <metal/irq.h>
 
-//#define GPIO_MONITORING
+#define GPIO_MONITORING
 
 #ifdef GPIO_MONITORING
 /* GPIO */
