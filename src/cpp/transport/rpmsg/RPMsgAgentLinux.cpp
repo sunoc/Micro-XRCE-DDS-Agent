@@ -91,7 +91,7 @@ namespace eprosima {
       size_t ret = 0;
       ssize_t bytes_written;
 
-      bytes_written = rpmsg_send(&lept, buf, len);
+      bytes_written = rpmsg_trysend(&lept, buf, len);
       if ( 0 < bytes_written )
 	ret = size_t(bytes_written);
       else
