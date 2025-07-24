@@ -1,65 +1,73 @@
-/*
- * Adapted from open-amp's
- * machine/zynqmp/platform_info.h, merged
- * with platform_info_common.h
- *
- */
-
-#ifndef PLATFORM_INFO_H_
-#define PLATFORM_INFO_H_
+#ifndef PLATFORM_INFO_COMMON_H
+#define PLATFORM_INFO_COMMON_H
 
 #include <openamp/remoteproc.h>
 #include <openamp/virtio.h>
 #include <openamp/rpmsg.h>
 
-#include <uxr/agent/transport/rpmsg/platform_info_common.h>
-
 #if defined __cplusplus
 extern "C" {
 #endif
 
-struct remoteproc_priv {
-	const char *ipi_name; /**< IPI device name */
-	const char *ipi_bus_name; /**< IPI bus name */
-	const char *rsc_name; /**< rsc device name */
-	const char *rsc_bus_name; /**< rsc bus name */
-	const char *shm_name; /**< shared memory device name */
-	const char *shm_bus_name; /**< shared memory bus name */
-	struct metal_device *ipi_dev; /**< pointer to IPI device */
-	struct metal_io_region *ipi_io; /**< pointer to IPI i/o region */
-	struct metal_device *shm_dev; /**< pointer to shared memory device */
-	struct metal_io_region *shm_io; /**< pointer to sh mem i/o region */
+/**
+ * platform_init - initialize the platform
+ *
+ * Initialize the platform.
+ *
+ * @argc: number of arguments
+ * @argv: array of the input arguments
+ * @platform: pointer to store the platform data pointer
+ *
+ * return 0 for success or negative value for failure
+ */
+int platform_init(int argc, char *argv[], void **platform);
 
-	struct remoteproc_mem shm_mem; /**< shared memory */
-	unsigned int ipi_chn_mask; /**< IPI channel mask */
-	atomic_int ipi_nokick;
-};
+/**
+ * platform_create_rpmsg_vdev - create rpmsg vdev
+ *
+ * Create rpmsg virtio device, and return the rpmsg virtio
+ * device pointer.
+ *
+ * @platform: pointer to the private data
+ * @vdev_index: index of the virtio device, there can more than one vdev
+ *              on the platform.
+ * @role: virtio driver or virtio device of the vdev
+ * @rst_cb: virtio device reset callback
+ * @ns_bind_cb: rpmsg name service bind callback
+ *
+ * return pointer to the rpmsg virtio device
+ */
+struct rpmsg_device *
+platform_create_rpmsg_vdev(void *platform, unsigned int vdev_index,
+			   unsigned int role,
+			   void (*rst_cb)(struct virtio_device *vdev),
+			   rpmsg_ns_bind_cb ns_bind_cb);
 
-#define RPU_CPU_ID          0 /* RPU remote CPU Index. We only talk to
-			       * one CPU in the example. We set the CPU
-			       * index to 0.
-			       */
-#define IPI_CHN_BITMASK	    0x00000100
-#define IPI_DEV_NAME	    "ff340000.ipi"
+/**
+ * platform_poll - platform poll function
+ *
+ * @platform: pointer to the platform
+ *
+ * return negative value for errors, otherwise 0.
+ */
+int platform_poll(void *platform);
 
-#define DEV_BUS_NAME        "platform" /* device bus name. "platform" bus
-                                        * is used in Linux kernel for generic
-					* devices */
+/**
+ * platform_release_rpmsg_vdev - release rpmsg virtio device
+ *
+ * @rpdev: pointer to the rpmsg device
+ */
+void platform_release_rpmsg_vdev(struct rpmsg_device *rpdev, void *platform);
 
-#define SHM_DEV_NAME        "3ed20000.shm" /* shared device name */
-#define RSC_MEM_PA          0x3ED20000UL
-#define RSC_MEM_SIZE        0x2000UL
-#define VRING_MEM_PA        0x3ED40000UL
-#define VRING_MEM_SIZE      0x8000UL
-#define SHARED_BUF_PA       0x3ED48000UL
-#define SHARED_BUF_SIZE     0x40000UL
-
-#define OCM_RAM_BASE_ADDR   0xFF340000UL
-
-#define _rproc_wait() metal_cpu_yield()
+/**
+ * platform_cleanup - clean up the platform resource
+ *
+ * @platform: pointer to the platform
+ */
+void platform_cleanup(void *platform);
 
 #if defined __cplusplus
 }
 #endif
 
-#endif /* PLATFORM_INFO_H_ */
+#endif /* PLATFORM_INFO_COMMON_H */
