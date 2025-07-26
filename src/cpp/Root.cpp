@@ -74,6 +74,19 @@ dds::xrce::ResultStatus Root::create_client(
         return invalid_result;
     }
 
+    if (client_representation.mtu() <= 0)
+    {
+        dds::xrce::ResultStatus invalid_result;
+        invalid_result.status(dds::xrce::STATUS_ERR_INVALID_DATA);
+
+        UXR_AGENT_LOG_INFO(
+            UXR_DECORATE_RED("invalid mtu"),
+            UXR_CLIENT_KEY_PATTERN,
+            conversion::clientkey_to_raw(client_representation.client_key()));
+
+        return invalid_result;
+    }
+
     dds::xrce::ResultStatus result_status;
     result_status.status(dds::xrce::STATUS_OK);
 
