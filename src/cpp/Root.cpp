@@ -17,10 +17,7 @@
 #include <uxr/agent/utils/Conversion.hpp>
 #include <uxr/agent/logger/Logger.hpp>
 
-#ifdef UAGENT_FAST_PROFILE
-// TODO (#5047): replace Fast RTPS dependency by XML parser library.
-#include <fastrtps/xmlparser/XMLProfileManager.h>
-#endif
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 
 #include <memory>
 #include <chrono>
@@ -77,6 +74,19 @@ dds::xrce::ResultStatus Root::create_client(
         return invalid_result;
     }
 
+    if (client_representation.mtu() <= 0)
+    {
+        dds::xrce::ResultStatus invalid_result;
+        invalid_result.status(dds::xrce::STATUS_ERR_INVALID_DATA);
+
+        UXR_AGENT_LOG_INFO(
+            UXR_DECORATE_RED("invalid mtu"),
+            UXR_CLIENT_KEY_PATTERN,
+            conversion::clientkey_to_raw(client_representation.client_key()));
+
+        return invalid_result;
+    }
+
     dds::xrce::ResultStatus result_status;
     result_status.status(dds::xrce::STATUS_OK);
 
@@ -93,7 +103,7 @@ dds::xrce::ResultStatus Root::create_client(
                 std::unordered_map<std::string, std::string> client_properties;
 
                 if (client_representation.properties())
-                {   
+                {
                     auto v = *client_representation.properties();
                     for (auto it_props = v.begin(); it_props != v.end(); ++it_props)
                     {
@@ -252,7 +262,7 @@ bool Root::load_config_file(const std::string& file_path)
 {
   // UXR_PRINTF("Start methode.", NULL);
 #ifdef UAGENT_FAST_PROFILE
-    return fastrtps::xmlparser::XMLP_ret::XML_OK == fastrtps::xmlparser::XMLProfileManager::loadXMLFile(file_path);
+    return fastdds::dds::RETCODE_OK == fastdds::dds::DomainParticipantFactory::get_instance()->load_XML_profiles_file(file_path.c_str());
 #else
     (void) file_path;
     return false;
