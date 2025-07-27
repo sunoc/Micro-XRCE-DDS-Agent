@@ -239,7 +239,6 @@ bool Agent::create_client(
         Middleware::Kind middleware_kind,
         OpResult& op_result)
 {
-  UXR_PRINTF("Entering method", NULL );
     dds::xrce::CLIENT_Representation client_representation;
     dds::xrce::AGENT_Representation agent_representation;
     dds::xrce::ResultStatus result;
@@ -543,7 +542,6 @@ bool Agent::load_config_file(const std::string& file_path)
 
 void Agent::set_verbose_level(uint8_t verbose_level)
 {
-    UXR_PRINTF("Entering method", NULL );
     root_->set_verbose_level(verbose_level);
 }
 

@@ -1184,9 +1184,10 @@ public:
         ss << "  * IPvX (udp4, udp6, tcp4, tcp6)" << std::endl;
         ss << ip_args_.get_help();
 #ifndef _WIN32
-        ss << "  * SERIAL (serial, multiserial, pseudoterminal, rpmsg)" << std::endl;
+        ss << "  * SERIAL (serial, multiserial, pseudoterminal)" << std::endl;
         ss << pseudoterminal_args_.get_help();
         ss << serial_args_.get_help();
+	ss << "  * RPMSG (rpmsg)" << std::endl;
 	ss << rpmsg_args_.get_help();
 #ifdef UAGENT_SOCKETCAN_PROFILE
         ss << "  * CAN FD (canfd)" << std::endl;
