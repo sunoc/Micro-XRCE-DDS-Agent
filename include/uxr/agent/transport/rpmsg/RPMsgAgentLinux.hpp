@@ -3,6 +3,18 @@
 
 #include <uxr/agent/transport/Server.hpp>
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
+#include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
+
+/*
+ * These C header must stay this way to keep compatibility
+ * with the upstream open-amp.
+ */
+extern "C" {
+#include <uxr/agent/transport/rpmsg/platform_info.h>
+}
+
+#include <deque>
+#include <pthread.h>
 
 #include <cstdint>
 #include <cstddef>
@@ -30,6 +42,12 @@
 #include <queue>
 #include <sys/mman.h>
 
+#include <openamp/virtio.h>
+#include <openamp/open_amp.h>
+#include <openamp/version.h>
+#include <metal/alloc.h>
+#include <metal/version.h>
+#include <metal/irq.h>
 #include <iostream>
 #include <sys/stat.h>
 
@@ -44,6 +62,7 @@
 #endif
 
 /* RPMsg max payload size values*/
+#define RPMSG_SERVICE_NAME         "rpmsg-openamp-demo-channel"
 /* 8192 + 16 + 24 = 8232 */
 #define RPMSG_HEADER_LEN        16
 #define MAX_RPMSG_BUFF_SIZE     (8232 - RPMSG_HEADER_LEN)
@@ -91,16 +110,7 @@ namespace eprosima {
 
       virtual bool fini() = 0;
 
-      ssize_t write_data(
-			 uint8_t* buf,
-			 size_t len,
-			 TransportRc& transport_rc);
-
-      ssize_t read_data(
-			uint8_t* buf,
-			size_t max_len,
-			int timeout,
-			TransportRc& transport_rc);
+      void aligned_copy(size_t len, uint8_t *src, uint8_t *dst);
 
       bool recv_message(
 			InputPacket<RPMsgEndPoint>& input_packet,
@@ -111,10 +121,22 @@ namespace eprosima {
 			OutputPacket<RPMsgEndPoint> output_packet,
 			TransportRc& transport_rc) final;
 
+      ssize_t write_data(
+			 uint8_t* buf,
+			 size_t len,
+			 TransportRc& transport_rc);
+
+      ssize_t read_data(
+			uint8_t* buf,
+			size_t len,
+			int timeout,
+			TransportRc& transport_rc);
+
     protected:
       const uint8_t addr_;
       struct pollfd poll_fd_;
       uint8_t buffer_[SERVER_BUFFER_SIZE];
+      FramingIO framing_io_;
       int opt;
       int charfd;
 

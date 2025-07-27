@@ -2,8 +2,11 @@
 #define UXR_AGENT_TRANSPORT_RPMSG_TERMIOSAGENTLINUX_HPP_
 
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
-
 #include <termios.h>
+#include <cstdint.h>
+#include <openamp/rpmsg.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 namespace eprosima {
   namespace uxr {
@@ -24,23 +27,16 @@ namespace eprosima {
 
       void send_shutdown(int filedescriptor);
 
-      int rpmsg_create_ept(int rpfd,
-			   rpmsg_endpoint_info *ept);
+      static int rpmsg_endpoint_cb(struct rpmsg_endpoint *ept,
+			    void *data,
+			    size_t len,
+			    uint32_t src,
+			    void *priv);
 
-      char *get_rpmsg_ept_dev_name(const char *rpmsg_name,
-				   const char *ept_name,
-				   char *ept_device_name);
+      static void rpmsg_service_unbind(struct rpmsg_endpoint *ept);
 
-      int bind_rpmsg_chrdev(const char *rpmsg_name);
-
-      int get_rpmsg_chrdev_fd(const char *rpmsg_name,
-			      char *rpmsg_ctrl_name);
-
-      void set_src_dst(char *out,
-		       rpmsg_endpoint_info *pep);
-
-      void lookup_channel(char *out,
-			  rpmsg_endpoint_info *pep);
+      static void rpmsg_name_service_bind_cb(struct rpmsg_device *rdev,
+				      const char *name, uint32_t dest);
 
     private:
 
