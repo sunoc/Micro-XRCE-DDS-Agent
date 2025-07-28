@@ -70,6 +70,8 @@ extern "C" {
 #define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
 #define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
 
+#define UDMA_ADDR_LEN           8
+
 #define RPMSG_BUS_SYS "/sys/bus/rpmsg"
 
 #define SHUTDOWN_MSG 0xEF56A55A
@@ -78,6 +80,20 @@ extern "C" {
 #define UXR_PRINTF(msg, ...)  UXR_AGENT_LOG_INFO(UXR_DECORATE_GREEN(msg), " {}",  ##__VA_ARGS__)
 #define UXR_WARNING(msg, ...) UXR_AGENT_LOG_INFO(UXR_DECORATE_YELLOW(msg), " {}",  ##__VA_ARGS__)
 #define UXR_ERROR(msg, ...)   UXR_AGENT_LOG_ERROR(UXR_DECORATE_RED(msg), " {}", ##__VA_ARGS__)
+
+/* Buffer between the cb and the read function */
+struct rpmsg_rcv_msg {
+  uint8_t * data;
+  size_t len;
+  struct rpmsg_endpoint *ept;
+  void * full_payload;
+};
+
+#ifdef GPIO_MONITORING
+struct alignas(0x200) GPIO_t {
+  uint32_t	data;
+};
+#endif
 
 namespace eprosima {
   namespace uxr {
@@ -97,12 +113,20 @@ namespace eprosima {
       bool has_p2p() final { return false; }
 #endif
 
-      /* rpmsg structure */
-      rpmsg_endpoint_info eptinfo = {
-	"rpmsg-openamp-demo-channel", // name[32]
-	0, // src
-	0, // dst
-      };
+      uint8_t * i_payload;
+      void *platform;
+      struct rpmsg_device *rpdev;
+
+      /* Static variables for static class methods. */
+      static struct rpmsg_endpoint lept;
+      static int shutdown_req;
+
+      static std::deque<rpmsg_rcv_msg>rpmsg_rcv_msg_q;
+
+#ifdef GPIO_MONITORING
+      static int GPIO_fd;
+      static GPIO_t* gpio;
+#endif
 
     private:
 
@@ -140,20 +164,6 @@ namespace eprosima {
       int opt;
       int charfd;
 
-      /* RPMsg-specific general variables */
-      int ntimes = 1;
-      char rpmsg_dev[NAME_MAX];
-      char rpmsg_char_name[16];
-      char fpath[2*NAME_MAX];
-
-      char ept_dev_name[16];
-      char ept_dev_path[32];
-
-      //int32_t rpmsg_buffer_len;
-      int32_t rpmsg_buffer_top;
-      uint8_t rpmsg_buffer[MAX_RPMSG_BUFF_SIZE];
-      std::queue<uint8_t> rpmsg_queue;
-
       /* udmabuf specific variables*/
       struct pollfd udmabuf0_fd, udmabuf0_fd_addr;
       struct pollfd udmabuf1_fd, udmabuf1_fd_addr;
@@ -162,16 +172,6 @@ namespace eprosima {
       unsigned char  udma0_attr[MAX_RPMSG_BUFF_SIZE];
       unsigned char  udma1_attr[MAX_RPMSG_BUFF_SIZE];
       unsigned long  udma0_phys_addr,  udma1_phys_addr;
-
-#ifdef GPIO_MONITORING
-      /* GPIO */
-      struct alignas(0x200) GPIO_t {
-	uint32_t	data;
-      };
-
-      int GPIO_fd;
-      GPIO_t* gpio;
-#endif
 
     };
 
