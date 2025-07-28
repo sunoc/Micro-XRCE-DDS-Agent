@@ -31,6 +31,13 @@ namespace eprosima {
 	}
     }
 
+    /* Static global variables init. */
+    struct rpmsg_endpoint RPMsgAgent::lept;
+    int RPMsgAgent::shutdown_req;
+
+    /* Read message queue variables */
+    std::deque<rpmsg_rcv_msg> RPMsgAgent::rpmsg_rcv_msg_q;
+
 #ifdef GPIO_MONITORING
     int RPMsgAgent::GPIO_fd;
     GPIO_t* RPMsgAgent::gpio;
@@ -118,9 +125,6 @@ namespace eprosima {
 
       /* micro-ROS first handshake message. */
       unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
-
-      int ret;
-      char udma_addr_hello[8];
 
       /* udmabuf sync_mode related vars */
       char  attr[1024];

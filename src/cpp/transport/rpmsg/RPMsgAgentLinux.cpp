@@ -41,18 +41,17 @@ namespace eprosima {
       , poll_fd_{}
       , buffer_{0}
       , framing_io_(addr,
-		    std::bind(&RPMsgAgent::write_data,
-			      this, std::placeholders::_1,
+		    std::bind(&RPMsgAgent::write_data, this,
+			      std::placeholders::_1,
 			      std::placeholders::_2,
 			      std::placeholders::_3),
-		    std::bind(&RPMsgAgent::read_data,
-			      this, std::placeholders::_1,
+		    std::bind(&RPMsgAgent::read_data, this,
+			      std::placeholders::_1,
 			      std::placeholders::_2,
 			      std::placeholders::_3,
 			      std::placeholders::_4))
       , opt{}
       , charfd{}
-      , rpmsg_queue{}
     {}
 
     /**************************************************************************
@@ -128,7 +127,7 @@ namespace eprosima {
 
       bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
       if ( UDMA_ADDR_LEN == bytes_written )
-	ret = len;
+	rv = len;
       else
 	{
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
@@ -149,19 +148,17 @@ namespace eprosima {
      **************************************************************************/
     ssize_t
     RPMsgAgent::read_data(uint8_t* buf,
-			  size_t max_len,
+			  size_t len,
 			  int timeout,
 			  TransportRc& transport_rc)
     {
 
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
-      int rpmsg_buffer_len = 0;
-      int attempts = timeout*100;
 
       /* Init the UDMABUF related variables. */
       size_t rpmsg_phys_addr = 0;
-      ssize_t bytes_read = 0;
+      size_t bytes_read = 0;
 
 
       if ( 0 >= timeout )
@@ -188,13 +185,13 @@ namespace eprosima {
 	     Getting the physical address back. */
 	  for ( int i = 0; i<4; i++ )
 	    {
-	      rpmsg_phys_addr += (in_data.data << i*8);
+	      rpmsg_phys_addr += (in_data.data[i] << i*8);
 	    }
 
 	  /* Getting the data length */
 	  for ( int i = 4; i<8; i++ )
 	    {
-	      bytes_read += (in_data.data << i*8);
+	      bytes_read += (in_data.data[i] << i*8);
 	    }
 
 	}
@@ -272,7 +269,7 @@ namespace eprosima {
 			     int timeout,
 			     TransportRc& transport_rc)
     {
-      bool ret = false;
+      bool rv = false;
       uint8_t remote_addr = 0x00;
       ssize_t bytes_read = 0;
 
@@ -292,7 +289,7 @@ namespace eprosima {
 	  input_packet.message.reset(new InputMessage(buffer_,
 						      static_cast<size_t>(bytes_read)));
 	  input_packet.source = RPMsgEndPoint(remote_addr);
-	  ret = true;
+	  rv = true;
 
 
 	  uint32_t raw_client_key;
@@ -306,7 +303,7 @@ namespace eprosima {
 				    input_packet.message->get_len());
 	    }
 	}
-      return ret;
+      return rv;
     }
 
     /**************************************************************************
@@ -319,7 +316,7 @@ namespace eprosima {
 			     OutputPacket<RPMsgEndPoint> output_packet,
 			     TransportRc& transport_rc)
     {
-      bool ret = false;
+      bool rv = false;
       ssize_t bytes_written =
 	framing_io_.write_framed_msg(
 				     output_packet.message->get_buf(),
@@ -329,7 +326,7 @@ namespace eprosima {
       if ( (0 < bytes_written) &&
 	   (static_cast<size_t>(bytes_written) == output_packet.message->get_len()) )
 	{
-	  ret = true;
+	  rv = true;
 
 	  uint32_t raw_client_key;
 	  if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination,
@@ -342,7 +339,7 @@ namespace eprosima {
 				    output_packet.message->get_len());
 	    }
 	}
-      return ret;
+      return rv;
     }
 
   } // namespace uxr

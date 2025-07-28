@@ -3,7 +3,6 @@
 
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
 #include <termios.h>
-#include <cstdint.h>
 #include <openamp/rpmsg.h>
 #include <fcntl.h>
 #include <unistd.h>
