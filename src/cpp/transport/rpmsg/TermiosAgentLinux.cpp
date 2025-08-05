@@ -257,7 +257,7 @@ namespace eprosima {
 	  return false;
 	}
       UXR_PRINTF("udmabuf1_fd.fd:", udmabuf0_fd.fd);
-      UXR_PRINTF("udmabuf1:", udmabuf1);
+      printf("udmabuf1: 0x%x\r\n", udmabuf1);
 
 
       if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1)
@@ -298,7 +298,7 @@ namespace eprosima {
 	  UXR_ERROR("Unable to get udmabuf1 physical address.", strerror(errno));
 	  return false;
 	}
-      UXR_PRINTF("UDMABUF0 and UDMABUF1 devices opening is successful.", NULL);
+      UXR_PRINTF("UDMABUF0 and UDMABUF1 set is successful!", NULL);
 
       return true;
     }

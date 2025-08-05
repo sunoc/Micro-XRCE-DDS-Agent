@@ -71,6 +71,7 @@ namespace eprosima {
     void
     RPMsgAgent::aligned_copy(size_t len, uint8_t *src, uint8_t *dst)
     {
+      printf("Src in aligned copy function: 0x%x\r\n", src);
       /* Copy data byte by byte until aligned */
       while ( len && (
 		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
@@ -152,7 +153,6 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
 
@@ -193,16 +193,15 @@ namespace eprosima {
 	    {
 	      bytes_read += (in_data.data[i] << i*8);
 	    }
-
 	}
 
-      if ( bytes_read == len )
-	{
+      printf("Got %d bytes.\r\n", bytes_read);
 #ifdef GPIO_MONITORING
 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  aligned_copy(len, in_data.data, buf);
+
+	  aligned_copy(bytes_read, (uint8_t *)udmabuf1, buf);
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
@@ -211,51 +210,8 @@ namespace eprosima {
 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data & ~(0x2);
 #endif
-	}
-      else if ( bytes_read > len )
-	{
-#ifdef GPIO_MONITORING
-	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
-	  gpio[3].data = gpio[3].data | 0x1;
-#endif
-	  aligned_copy(len, in_data.data, buf);
 
-	  /* Trunkate the first element of the queue. */
-	  bytes_read   -=  len;
-	  in_data.data  +=  len;
-
-	  /* Disabling remoteproc interrupts when
-	     accessing the queue. */
-	  metal_irq_flag = metal_irq_save_disable();
-	  rpmsg_rcv_msg_q.push_front(in_data);
-	  metal_irq_restore_enable(metal_irq_flag);
-
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 0 on GPIO channel 3 (blue)*/
-	  gpio[3].data = gpio[3].data & ~(0x1);
-#endif
-	}
-      else  //if ( bytes_read < len)
-	{
-#ifdef GPIO_MONITORING
-	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
-	  gpio[3].data = gpio[3].data | 0x2;
-#endif
-	  aligned_copy(bytes_read, in_data.data, buf);
-
-	  /* All data has been used, can release it. */
-	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
-
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 0 on GPIO channel 3 (purple)*/
-	  gpio[3].data = gpio[3].data & ~(0x2);
-#endif
-
-	  /* Return the length we have. */
-	  return bytes_read;
-	}
-
-      return len;
+      return bytes_read;
     }
 
     /**************************************************************************
