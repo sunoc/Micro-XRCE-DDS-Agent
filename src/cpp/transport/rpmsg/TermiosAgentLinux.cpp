@@ -121,10 +121,10 @@ namespace eprosima {
     {
       int argc = 1;
       char **argv = NULL;
-      int ret, max_size, hello_ret;
+      int ret, max_size;
 
       /* micro-ROS first handshake message. */
-      unsigned char hello[10] = {42, 42, 42, 42, 42, 42, 42, 42, 42, 42};
+      char udma_addr_hello[8];
 
       /* udmabuf sync_mode related vars */
       char  attr[1024];
@@ -194,16 +194,6 @@ namespace eprosima {
       while ( !is_rpmsg_ept_ready(&lept) )
 	platform_poll(platform);
 
-      hello_ret = rpmsg_send(&lept, hello, 10);
-      if ( 0 >= hello_ret )
-	{
-	  UXR_ERROR("Hello message sending failed.", strerror(errno));
-	  fini();
-	  return false;
-	}
-
-      UXR_PRINTF("RPMsg init is successful.", NULL);
-
       /************************************************************************/
       UXR_PRINTF("Start UDMABUF Initialization process...", NULL);
       buf_size = 8232; /* Ramdom value, should be changed later!! */
@@ -247,7 +237,7 @@ namespace eprosima {
 
 	  /* Initialize the bufer with zeros. */
 	  for ( size_t i = 0; i<buf_size; i++)
-	    udmabuf0[i] = 0;
+	    udmabuf1[i] = 0;
 
 	  close(udmabuf1_fd.fd);
 	}
@@ -256,9 +246,8 @@ namespace eprosima {
 	  UXR_ERROR("Unable to open /dev/udmabuf1.", strerror(errno));
 	  return false;
 	}
-      UXR_PRINTF("udmabuf1_fd.fd:", udmabuf0_fd.fd);
-      printf("udmabuf1: 0x%x\r\n", udmabuf1);
-
+      UXR_PRINTF("udmabuf1_fd.fd:", udmabuf1_fd.fd);
+      UXR_PRINTF("udmabuf1:", udmabuf1);
 
       if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1)
 	{
@@ -269,7 +258,6 @@ namespace eprosima {
 	}
 
       /************************************************************************/
-      UXR_PRINTF("Try and read UDMABUF0 physical address.", NULL);
       if (-1 != (udmabuf0_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
 	{
 	  if ( 0 >= read(udmabuf0_fd_addr.fd, udma0_attr, 1024))
@@ -284,7 +272,6 @@ namespace eprosima {
 	  return false;
 	}
 
-      UXR_PRINTF("Try and read UDMABUF1 physical address.", NULL);
       if (-1 != (udmabuf1_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf1/phys_addr", O_RDONLY)))
 	{
 	  if ( 0 >= read(udmabuf1_fd_addr.fd, udma1_attr, 1024))
@@ -299,6 +286,25 @@ namespace eprosima {
 	  return false;
 	}
       UXR_PRINTF("UDMABUF0 and UDMABUF1 set is successful!", NULL);
+
+      /**************************************************************************/
+      UXR_PRINTF("Sending UDMA0 addr message to the remoteproc", udma0_phys_addr);
+      for (int i = 0; i<4; i++)
+	udma_addr_hello[i] = (udma0_phys_addr >> i*8) & 0x00FF;
+
+      UXR_PRINTF("Sending UDMA1 addr message to the remoteproc", udma1_phys_addr);
+      for (int i = 0; i<4; i++)
+	udma_addr_hello[4+i] = (udma1_phys_addr >> i*8) & 0x00FF;
+
+      ret = rpmsg_trysend(&lept, udma_addr_hello, 8);
+      if ( 0 >= ret )
+	{
+	  UXR_ERROR("Hello message sending failed.", strerror(errno));
+	  fini();
+	  return false;
+	}
+
+      UXR_PRINTF("RPMsg init is successful.", NULL);
 
       return true;
     }
