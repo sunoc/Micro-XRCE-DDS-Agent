@@ -167,11 +167,11 @@ namespace eprosima {
       /* udmabuf specific variables*/
       struct pollfd udmabuf0_fd, udmabuf0_fd_addr;
       struct pollfd udmabuf1_fd, udmabuf1_fd_addr;
-      unsigned char *udmabuf0, *udmabuf1;
+      uint8_t *udmabuf0, *udmabuf1;
       size_t buf_size;
-      unsigned char  udma0_attr[MAX_RPMSG_BUFF_SIZE];
-      unsigned char  udma1_attr[MAX_RPMSG_BUFF_SIZE];
-      unsigned long  udma0_phys_addr,  udma1_phys_addr;
+      uint8_t  udma0_attr[MAX_RPMSG_BUFF_SIZE];
+      uint8_t  udma1_attr[MAX_RPMSG_BUFF_SIZE];
+      uint32_t  udma0_phys_addr,  udma1_phys_addr;
 
     };
 

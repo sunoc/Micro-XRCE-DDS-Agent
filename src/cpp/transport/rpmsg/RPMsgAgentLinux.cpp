@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
 #include <uxr/agent/utils/Conversion.hpp>
 #include <uxr/agent/logger/Logger.hpp>
@@ -116,14 +117,14 @@ namespace eprosima {
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
       /* Put the data in the udmabuf, alligned by 32bits. */
-      aligned_copy(len, udmabuf0, buf);
+      aligned_copy(len, buf, udmabuf0);
 
       /* Put the length and physical addr in the rpmsg buf.
 	 Note that the offset udmabuff address is NOT sent. */
       for (int i = 0; i<4; i++)
 	udmabuf_payload[i] = (udma0_phys_addr >> i*8) & 0x00FF;
       for (int i = 0; i<4; i++)
-	udmabuf_payload[4+i] = ((unsigned long)len >> i*8) & 0x00FF;
+	udmabuf_payload[i+4] = ((unsigned long)len >> i*8) & 0x00FF;
 
       bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
       if ( UDMA_ADDR_LEN == bytes_written )
@@ -182,16 +183,11 @@ namespace eprosima {
 	  /* 8 bytes of data were received !
 	     Getting the physical address back. */
 	  for ( int i = 0; i<4; i++ )
-	    {
-	      rpmsg_phys_addr += ( in_data.data[i] << i*8 );
-	    }
+	    rpmsg_phys_addr += ( in_data.data[i] << i*8 );
 
 	  /* Getting the data length (32 bits) */
-	  for ( int i = 4; i<8; i++ )
-	    {
-	      /* Index 0 is the unused physical address. */
-	      bytes_read += ( in_data.data[i] << i*8 );
-	    }
+	  for ( int i = 0; i<4; i++ )
+	    bytes_read += ( in_data.data[i+4] << i*8 );
 	}
       else
 	{
@@ -214,7 +210,7 @@ namespace eprosima {
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
 
-	  aligned_copy(len, (uint8_t *)udmabuf1, buf);
+	  aligned_copy(len, udmabuf1, buf);
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
@@ -230,14 +226,14 @@ namespace eprosima {
 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
-	  aligned_copy(len, (uint8_t *)udmabuf1, buf);
+	  aligned_copy(len, udmabuf1, buf);
 
 	  /* Shift the data. */
-	  for ( int i = 0; i<( bytes_read - len ); i++)
+	  for ( size_t i = 0; i<( bytes_read - len ); i++)
 	    udmabuf1[i] = udmabuf1[i+len];
 
           /* Update the length. */
-	   for ( int i = 0; i<4; i++ )
+	   for ( size_t i = 0; i<4; i++ )
 	    {
 	      in_data.data[i+4] = ((unsigned long)( bytes_read - len) >> i*8) & 0x00FF;
 	    }
@@ -260,7 +256,7 @@ namespace eprosima {
 	  gpio[2].data = gpio[2].data | 0x2;
 #endif
 
-	  aligned_copy(bytes_read, (uint8_t *)udmabuf1, buf);
+	  aligned_copy(bytes_read, udmabuf1, buf);
 
 	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);

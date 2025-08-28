@@ -216,9 +216,6 @@ namespace eprosima {
 	  UXR_ERROR("Unable to open /dev/udmabuf0.", strerror(errno));
 	  return false;
 	}
-      UXR_PRINTF("udmabuf0_fd.fd:", udmabuf0_fd.fd);
-      UXR_PRINTF("udmabuf0:", udmabuf0);
-
 
       if ((fd  = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)) != -1) {
 	sprintf(attr, "%ld", sync_mode);
@@ -246,8 +243,6 @@ namespace eprosima {
 	  UXR_ERROR("Unable to open /dev/udmabuf1.", strerror(errno));
 	  return false;
 	}
-      UXR_PRINTF("udmabuf1_fd.fd:", udmabuf1_fd.fd);
-      UXR_PRINTF("udmabuf1:", udmabuf1);
 
       if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1)
 	{
