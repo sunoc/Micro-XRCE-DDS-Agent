@@ -43,7 +43,6 @@ namespace eprosima {
     GPIO_t* RPMsgAgent::gpio;
 #endif
 
-
     /**************************************************************************
      *
      * @brief        RPMsg input data callback methode.
@@ -132,7 +131,9 @@ namespace eprosima {
       int fd;
 
 #ifdef GPIO_MONITORING
-      UXR_PRINTF("GPIO init....", NULL);
+      UXR_PRINTF("-------------------------------------------", NULL);
+      UXR_PRINTF("| Start GPIO Initialization process...    |", NULL);
+      UXR_PRINTF("-------------------------------------------", NULL);
       GPIO_fd = open("/dev/mem", O_RDWR | O_SYNC);
       if (GPIO_fd <= 0)
 	{
@@ -151,7 +152,9 @@ namespace eprosima {
       UXR_PRINTF("GPIO init successfully!", NULL);
 #endif
 
-      UXR_PRINTF("Start RPMsg Initialization process...", NULL);
+      UXR_PRINTF("-------------------------------------------", NULL);
+      UXR_PRINTF("| Start RPMsg Initialization process...   |", NULL);
+      UXR_PRINTF("-------------------------------------------", NULL);
       UXR_PRINTF("openamp lib version: ", openamp_version());
       UXR_PRINTF("libmetal lib version: ", metal_ver());
 
@@ -194,15 +197,16 @@ namespace eprosima {
       while ( !is_rpmsg_ept_ready(&lept) )
 	platform_poll(platform);
 
-      /************************************************************************/
-      UXR_PRINTF("Start UDMABUF Initialization process...", NULL);
+      UXR_PRINTF("-------------------------------------------", NULL);
+      UXR_PRINTF("| Start UDMABUF Initialization process... |", NULL);
+      UXR_PRINTF("-------------------------------------------", NULL);
       buf_size = 8232; /* Ramdom value, should be changed later!! */
       UXR_PRINTF("Setting up the UDMABUF0.", buf_size);
       if (-1 != (udmabuf0_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
 	{
-	  udmabuf0 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE,
+	  udmabuf0 = (uint8_t *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE,
 					   MAP_SHARED, udmabuf0_fd.fd, 0);
-	  if ( -1 == *((int *)udmabuf0) )
+	  if ( -1 == *((int8_t *)udmabuf0) )
 	    UXR_ERROR("Failde to mmap udmabuf0", strerror(errno));
 
 	  /* Initialize the bufer with zeros. */
@@ -217,19 +221,20 @@ namespace eprosima {
 	  return false;
 	}
 
-      if ((fd  = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)) != -1) {
-	sprintf(attr, "%ld", sync_mode);
-	if (-1 == ::write(fd, attr, strlen(attr)))
-	  UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
-	close(fd);
-      }
+      if (-1 != (fd = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)))
+	{
+	  sprintf(attr, "%ld", sync_mode);
+	  if (-1 == ::write(fd, attr, strlen(attr)))
+	    UXR_ERROR("Failde to write sync_mode to 1", strerror(errno));
+	  close(fd);
+	}
 
       UXR_PRINTF("Setting up the UDMABUF1.", buf_size);
       if (-1 != (udmabuf1_fd.fd  = open("/dev/udmabuf1", O_RDWR | O_SYNC)))
 	{
-	  udmabuf1 = (unsigned char *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE,
+	  udmabuf1 = (uint8_t *)mmap(NULL, buf_size, PROT_READ|PROT_WRITE,
 					   MAP_SHARED, udmabuf1_fd.fd, 0);
-	  if ( -1 == *((int *)udmabuf1) )
+	  if ( -1 == *((int8_t *)udmabuf1) )
 	    UXR_ERROR("Failde to mmap udmabuf1", strerror(errno));
 
 	  /* Initialize the bufer with zeros. */
@@ -244,7 +249,7 @@ namespace eprosima {
 	  return false;
 	}
 
-      if ((fd  = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)) != -1)
+      if (-1 != (fd = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)))
 	{
 	  sprintf(attr, "%ld", sync_mode);
 	  if (-1 == ::write(fd, attr, strlen(attr)))
@@ -252,14 +257,14 @@ namespace eprosima {
 	  close(fd);
 	}
 
-      /************************************************************************/
+      /**************************************************************/
       if (-1 != (udmabuf0_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
 	{
 	  if ( 0 >= read(udmabuf0_fd_addr.fd, udma0_attr, 1024))
 	    {
 	      UXR_ERROR("Unable to read from the udmabuf0 addr", strerror(errno));
 	    }
-	  sscanf((const char*)udma0_attr, "0x%lx", &udma0_phys_addr);
+	  sscanf((const char*)udma0_attr, "0x%x", &udma0_phys_addr);
 	}
       else
 	{
@@ -273,7 +278,7 @@ namespace eprosima {
 	    {
 	      UXR_ERROR("Unable to read from the udmabuf1 addr", strerror(errno));
 	    }
-	  sscanf((const char*)udma1_attr, "0x%lx", &udma1_phys_addr);
+	  sscanf((const char*)udma1_attr, "0x%x", &udma1_phys_addr);
 	}
       else
 	{
@@ -282,14 +287,15 @@ namespace eprosima {
 	}
       UXR_PRINTF("UDMABUF0 and UDMABUF1 set is successful!", NULL);
 
-      /**************************************************************************/
-      UXR_PRINTF("Sending UDMA0 addr message to the remoteproc", udma0_phys_addr);
-      for (int i = 0; i<4; i++)
+      /**************************************************************/
+      for (size_t i = 0; i<4; i++)
 	udma_addr_hello[i] = (udma0_phys_addr >> i*8) & 0x00FF;
 
-      UXR_PRINTF("Sending UDMA1 addr message to the remoteproc", udma1_phys_addr);
-      for (int i = 0; i<4; i++)
+      for (size_t i = 0; i<4; i++)
 	udma_addr_hello[4+i] = (udma1_phys_addr >> i*8) & 0x00FF;
+
+      printf("udmabuf0: 0x%x\r\n", udmabuf0);
+      printf("udmabuf1: 0x%x\r\n", udmabuf1);
 
       ret = rpmsg_trysend(&lept, udma_addr_hello, 8);
       if ( 0 >= ret )
@@ -298,6 +304,11 @@ namespace eprosima {
 	  fini();
 	  return false;
 	}
+
+      udmabuf0[0] = 'B';
+
+      while ( 0 == udmabuf1[0] ) {}
+      printf("udmabuf1[0]: 0x%x\r\n", udmabuf1[0]);
 
       UXR_PRINTF("RPMsg init is successful.", NULL);
 
