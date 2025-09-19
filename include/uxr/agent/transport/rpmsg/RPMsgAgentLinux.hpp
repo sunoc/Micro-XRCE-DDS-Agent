@@ -16,6 +16,8 @@ extern "C" {
 #include <deque>
 #include <pthread.h>
 
+#include <termios.h>
+
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
@@ -45,6 +47,8 @@ extern "C" {
 #include <openamp/virtio.h>
 #include <openamp/open_amp.h>
 #include <openamp/version.h>
+#include <openamp/rpmsg.h>
+
 #include <metal/alloc.h>
 #include <metal/version.h>
 #include <metal/irq.h>
@@ -134,16 +138,7 @@ namespace eprosima {
 
       virtual bool fini() = 0;
 
-      void aligned_copy(size_t len, uint8_t *src, uint8_t *dst);
-
-      bool recv_message(
-			InputPacket<RPMsgEndPoint>& input_packet,
-			int timeout,
-			TransportRc& transport_rc) final;
-
-      bool send_message(
-			OutputPacket<RPMsgEndPoint> output_packet,
-			TransportRc& transport_rc) final;
+      void aligned_copy(size_t len, uint8_t* src, uint8_t* dst);
 
       ssize_t write_data(
 			 uint8_t* buf,
@@ -155,6 +150,15 @@ namespace eprosima {
 			size_t len,
 			int timeout,
 			TransportRc& transport_rc);
+
+      bool recv_message(
+			InputPacket<RPMsgEndPoint>& input_packet,
+			int timeout,
+			TransportRc& transport_rc) final;
+
+      bool send_message(
+			OutputPacket<RPMsgEndPoint> output_packet,
+			TransportRc& transport_rc) final;
 
     protected:
       const uint8_t addr_;
