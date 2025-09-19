@@ -294,9 +294,7 @@ namespace eprosima {
       for (size_t i = 0; i<4; i++)
 	udma_addr_hello[4+i] = (udma1_phys_addr >> i*8) & 0x00FF;
 
-      printf("udmabuf0: 0x%x\r\n", udmabuf0);
-      printf("udmabuf1: 0x%x\r\n", udmabuf1);
-
+      /* Sending the hello payload using RPMsg */
       ret = rpmsg_trysend(&lept, udma_addr_hello, 8);
       if ( 0 >= ret )
 	{
@@ -304,11 +302,6 @@ namespace eprosima {
 	  fini();
 	  return false;
 	}
-
-      udmabuf0[0] = 'B';
-
-      while ( 0 == udmabuf1[0] ) {}
-      printf("udmabuf1[0]: 0x%x\r\n", udmabuf1[0]);
 
       UXR_PRINTF("RPMsg init is successful.", NULL);
 
