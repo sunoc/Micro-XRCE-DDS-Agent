@@ -8,32 +8,6 @@
 namespace eprosima {
   namespace uxr {
 
-    namespace {
-      const std::string transport_rc_to_str( const TransportRc& transport_rc)
-      {
-	switch (transport_rc)
-	  {
-	  case TransportRc::connection_error:
-	    {
-	      return std::string("connection error");
-	    }
-	  case TransportRc::timeout_error:
-	    {
-	      return std::string("timeout error");
-	    }
-	  case TransportRc::server_error:
-	    {
-	      return std::string("server error");
-	    }
-	  default:
-	    {
-	      return std::string();
-	    }
-	  }
-      }
-
-    } // anonymous namespace
-
     RPMsgAgent::RPMsgAgent(
 			   uint8_t addr,
 			   Middleware::Kind middleware_kind)
@@ -55,10 +29,10 @@ namespace eprosima {
       , charfd{}
     {}
 
-    /**************************************************************************
+    /*****************************************************************
      *
-     * @brief   Trying to copy data in a faster way, by aligning with 32bits
-     *          blocks as much as possible.
+     * @brief   Trying to copy data in a faster way, by aligning with
+     *          32bits blocks as much as possible.
      *
      * @param	len: data length to be copied
      *          src: pointer for data source
@@ -68,10 +42,14 @@ namespace eprosima {
      *
      * @note	None.
      *
-     **************************************************************************/
+     ****************************************************************/
     void
     RPMsgAgent::aligned_copy(size_t len, uint8_t *src, uint8_t *dst)
     {
+      size_t len_copy = len;
+      for ( size_t i = 0; i<len_copy; i++ )
+	printf("0x%x\r\n", src[i]);
+
       /* Copy data byte by byte until aligned */
       while ( len && (
 		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
@@ -84,7 +62,8 @@ namespace eprosima {
 	}
 
       /* Copy data by 32bits. */
-      for (; (uint32_t)len >= (uint32_t)sizeof(uint32_t); dst += sizeof(uint32_t),
+      for (; (uint32_t)len >= (uint32_t)sizeof(uint32_t);
+	   dst += sizeof(uint32_t),
 	     src += sizeof(uint32_t),
 	     len -= sizeof(uint32_t))
 	{
@@ -96,13 +75,17 @@ namespace eprosima {
 	{
 	  *dst = *src;
 	}
+
+      printf("Writing %ld bytes to dst:", len_copy);
+      for ( size_t i = 0; i<len_copy; i++ )
+	printf("0x%x\r\n", dst[i]);
     }
 
-    /**************************************************************************
+    /*****************************************************************
      *
      * @brief        Usage of the rpmsg_send function directly.
      *
-     **************************************************************************/
+     ****************************************************************/
     ssize_t
     RPMsgAgent::write_data(uint8_t* buf,
 			   size_t len,
@@ -142,11 +125,11 @@ namespace eprosima {
       return rv;
     }
 
-    /**************************************************************************
+    /*****************************************************************
      *
      * @brief        Access the buffer populated by the rpmsg calllback.
      *
-     **************************************************************************/
+     ****************************************************************/
     ssize_t
     RPMsgAgent::read_data(uint8_t* buf,
 			  size_t len,
@@ -155,10 +138,8 @@ namespace eprosima {
     {
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
-
-      /* Init the UDMABUF related variables. */
+      size_t rcv_phys_addr = 0;
       size_t bytes_read = 0;
-      size_t rpmsg_phys_addr = 0;
 
       if ( 0 >= timeout )
 	{
@@ -180,102 +161,110 @@ namespace eprosima {
       /* Get the real data length from the rpmsg pl. */
       if ( in_data.len == UDMA_ADDR_LEN )
 	{
-	  /* 8 bytes of data were received !
-	     Getting the physical address back. */
-	  for ( int i = 0; i<4; i++ )
-	    rpmsg_phys_addr += ( in_data.data[i] << i*8 );
-
-	  /* Getting the data length (32 bits) */
-	  for ( int i = 0; i<4; i++ )
+	  for ( int i = 0; i<4; i++ ) /* Read 4 bytes */
+	    rcv_phys_addr += ( in_data.data[i] << i*8 );
+	  for ( int i = 0; i<4; i++ ) /* Read 4 bytes */
 	    bytes_read += ( in_data.data[i+4] << i*8 );
 	}
       else
 	{
-	  UXR_ERROR("Wrong udmabuf package size received.", strerror(errno));
+	  UXR_ERROR("Wrong udmabuf package size received.",
+		    strerror(errno));
 	  return 0;
 	}
 
       /* Debug prints. */
-      printf("===========================================================\r\n");
-      printf("rpmsg_phys_addr: 0x%x\r\n", rpmsg_phys_addr);
-      printf("bytes_read = 0x%x, vs len = 0x%x\r\n", bytes_read, len);
+      printf("=================================================\r\n");
+      printf("rcv_phys_addr: 0x%x\r\n", udma1_phys_addr);
       printf("udmabuf1: 0x%x\r\n", udmabuf1);
-      for ( int i = 0; i<bytes_read; i++ )
-	printf("0x%x\r\n", udmabuf1[i]);
+      printf("bytes_read = 0x%lx, vs len = 0x%lx\r\n", bytes_read,
+	     len);
 
-      if ( bytes_read == len )
-	{
-#ifdef GPIO_MONITORING
-	  /* turns on PIN 1 on GPIO channel 2 (green)*/
-	  gpio[2].data = gpio[2].data | 0x2;
-#endif
+      for ( size_t i = 0; i<bytes_read; i++)
+	buf[i] = udmabuf1[i];
 
-	  aligned_copy(len, udmabuf1, buf);
+      for ( size_t i = 0; i<bytes_read; i++)
+	printf("0x%x\r\n", buf[i]);
 
-	  /* All data has been used, can release it. */
-	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+      //aligned_copy(bytes_read, udmabuf1, buf);
 
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 1 on GPIO channel 2 (green)*/
-	  gpio[2].data = gpio[2].data & ~(0x2);
-#endif
-	}
-      else if ( bytes_read > len ) /* "Too much data received" */
-	{
-#ifdef GPIO_MONITORING
-	  /* turns on PIN 1 on GPIO channel 2 (green)*/
-	  gpio[2].data = gpio[2].data | 0x2;
-#endif
-	  aligned_copy(len, udmabuf1, buf);
+      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
-	  /* Shift the data. */
-	  for ( size_t i = 0; i<( bytes_read - len ); i++)
-	    udmabuf1[i] = udmabuf1[i+len];
+      return bytes_read;
 
-          /* Update the length. */
-	   for ( size_t i = 0; i<4; i++ )
-	    {
-	      in_data.data[i+4] = ((unsigned long)( bytes_read - len) >> i*8) & 0x00FF;
-	    }
+  //     if ( bytes_read == len )
+// 	{
+// #ifdef GPIO_MONITORING
+// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data | 0x2;
+// #endif
 
-	  /* Disabling remoteproc interrupts when
-	     accessing the queue. */
-	  metal_irq_flag = metal_irq_save_disable();
-	  rpmsg_rcv_msg_q.push_front(in_data);
-	  metal_irq_restore_enable(metal_irq_flag);
+// 	  aligned_copy(len, udmabuf1, buf);
 
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 1 on GPIO channel 2 (green)*/
-	  gpio[2].data = gpio[2].data & ~(0x2);
-#endif
-	}
-      else /* "Not enough data received" */
-	{
-#ifdef GPIO_MONITORING
-	  /* turns on PIN 1 on GPIO channel 2 (green)*/
-	  gpio[2].data = gpio[2].data | 0x2;
-#endif
+// 	  /* All data has been used, can release it. */
+// 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
-	  aligned_copy(bytes_read, udmabuf1, buf);
+// #ifdef GPIO_MONITORING
+// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data & ~(0x2);
+// #endif
+// 	}
+//       else if ( bytes_read > len ) /* "Too much data received" */
+// 	{
+// #ifdef GPIO_MONITORING
+// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data | 0x2;
+// #endif
+// 	  aligned_copy(len, udmabuf1, buf);
 
-	  /* All data has been used, can release it. */
-	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+// 	  /* Shift the data. */
+// 	  for ( size_t i = 0; i<( bytes_read - len ); i++)
+// 	    udmabuf1[i] = udmabuf1[i+len];
 
-#ifdef GPIO_MONITORING
-	  /* turns off PIN 1 on GPIO channel 2 (green)*/
-	  gpio[2].data = gpio[2].data & ~(0x2);
-#endif
-	  return bytes_read;
-	}
+//           /* Update the length. */
+// 	   for ( size_t i = 0; i<4; i++ )
+// 	    {
+// 	      in_data.data[i+4] = ((unsigned long)( bytes_read - len) >> i*8) & 0x00FF;
+// 	    }
 
-      return len;
+// 	  /* Disabling remoteproc interrupts when
+// 	     accessing the queue. */
+// 	  metal_irq_flag = metal_irq_save_disable();
+// 	  rpmsg_rcv_msg_q.push_front(in_data);
+// 	  metal_irq_restore_enable(metal_irq_flag);
+
+// #ifdef GPIO_MONITORING
+// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data & ~(0x2);
+// #endif
+// 	}
+//       else /* "Not enough data received" */
+// 	{
+// #ifdef GPIO_MONITORING
+// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data | 0x2;
+// #endif
+
+// 	  aligned_copy(bytes_read, udmabuf1, buf);
+
+// 	  /* All data has been used, can release it. */
+// 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+// #ifdef GPIO_MONITORING
+// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data & ~(0x2);
+// #endif
+// 	  return bytes_read;
+// 	}
+
+//      return len;
     }
 
-    /**************************************************************************
+    /*****************************************************************
      *
      * @brief        Agent methode to receive messages.
      *
-     **************************************************************************/
+     ****************************************************************/
     bool
     RPMsgAgent::recv_message(
 			     InputPacket<RPMsgEndPoint>& input_packet,
@@ -319,11 +308,11 @@ namespace eprosima {
       return rv;
     }
 
-    /**************************************************************************
+    /*****************************************************************
      *
      * @brief        Agent methode to send messages.
      *
-     **************************************************************************/
+     ****************************************************************/
     bool
     RPMsgAgent::send_message(
 			     OutputPacket<RPMsgEndPoint> output_packet,
