@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <pthread.h>
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
 #include <uxr/agent/utils/Conversion.hpp>
 #include <uxr/agent/logger/Logger.hpp>
@@ -7,6 +8,32 @@
 
 namespace eprosima {
   namespace uxr {
+
+    namespace {
+      const std::string transport_rc_to_str( const TransportRc& transport_rc)
+      {
+	switch (transport_rc)
+	  {
+	  case TransportRc::connection_error:
+	    {
+	      return std::string("connection error");
+	    }
+	  case TransportRc::timeout_error:
+	    {
+	      return std::string("timeout error");
+	    }
+	  case TransportRc::server_error:
+	    {
+	      return std::string("server error");
+	    }
+	  default:
+	    {
+	      return std::string();
+	    }
+	  }
+      }
+
+    } // anonymous namespace
 
     RPMsgAgent::RPMsgAgent(
 			   uint8_t addr,
@@ -266,7 +293,7 @@ namespace eprosima {
       uint8_t remote_addr = 0x00;
       ssize_t bytes_read = 0;
 
-      do
+      try
 	{
 	  bytes_read = framing_io_.read_framed_msg(
 						   buffer_,
@@ -274,29 +301,48 @@ namespace eprosima {
 						   remote_addr,
 						   timeout,
 						   transport_rc);
-	}
-      while ( (0 == bytes_read) && (0 < timeout) );
 
-      if ( 0 < bytes_read )
-	{
-	  input_packet.message.reset(new InputMessage(buffer_,
-						      static_cast<size_t>(bytes_read)));
-	  input_packet.source = RPMsgEndPoint(remote_addr);
-	  rv = true;
-
-
-	  uint32_t raw_client_key;
-	  if ( Server<RPMsgEndPoint>::get_client_key(input_packet.source,
-						     raw_client_key) )
+	  if ( 0 < bytes_read && TransportRc::ok == transport_rc )
 	    {
-	      UXR_AGENT_LOG_MESSAGE(
-				    UXR_DECORATE_YELLOW("[==>> RPMsg <<==]"),
-				    raw_client_key,
-				    input_packet.message->get_buf(),
-				    input_packet.message->get_len());
+	      input_packet.message.reset(new InputMessage(buffer_,
+							  static_cast<size_t>(bytes_read)));
+	      input_packet.source = RPMsgEndPoint(remote_addr);
+	      rv = true;
+
+
+	      uint32_t raw_client_key;
+	      if ( Server<RPMsgEndPoint>::get_client_key(input_packet.source,
+							 raw_client_key) )
+		{
+		  UXR_AGENT_LOG_MESSAGE(
+					UXR_DECORATE_YELLOW("[==>> RPMsg <<==]"),
+					raw_client_key,
+					input_packet.message->get_buf(),
+					input_packet.message->get_len());
+		}
 	    }
+	  else if ( TransportRc::timeout_error != transport_rc )
+	    {
+	      std::stringstream ss;
+	      ss << UXR_COLOR_RED << "Error while receiving message: "
+		 << transport_rc_to_str(transport_rc) << UXR_COLOR_RESET;
+	      UXR_AGENT_LOG_ERROR(
+				  ss.str(),
+				  "{} agent error",
+				  "RPMsg");
+	    }
+	  return rv;
 	}
-      return rv;
+      catch (const std::exception& e)
+	{
+	  UXR_AGENT_LOG_ERROR(
+			      UXR_DECORATE_RED("Error receiving msg."),
+			      "custom {} agent, exception: {}",
+			      "RPMsg", e.what());
+	  transport_rc = TransportRc::server_error;
+
+	  return false;
+	}
     }
 
     /*****************************************************************
@@ -310,29 +356,60 @@ namespace eprosima {
 			     TransportRc& transport_rc)
     {
       bool rv = false;
-      ssize_t bytes_written =
-	framing_io_.write_framed_msg(
-				     output_packet.message->get_buf(),
-				     output_packet.message->get_len(),
-				     output_packet.destination.get_addr(),
-				     transport_rc);
-      if ( (0 < bytes_written) &&
-	   (static_cast<size_t>(bytes_written) == output_packet.message->get_len()) )
-	{
-	  rv = true;
 
-	  uint32_t raw_client_key;
-	  if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination,
-						    raw_client_key))
+      try
+	{
+	  ssize_t bytes_written =
+	    framing_io_.write_framed_msg(
+					 output_packet.message->get_buf(),
+					 output_packet.message->get_len(),
+					 output_packet.destination.get_addr(),
+					 transport_rc);
+          if ((0 < bytes_written)
+              && (static_cast<size_t>(bytes_written)
+		  == output_packet.message->get_len()) )
 	    {
-	      UXR_AGENT_LOG_MESSAGE(
-				    UXR_DECORATE_YELLOW("[** <<RPMsg>> **]"),
-				    raw_client_key,
-				    output_packet.message->get_buf(),
-				    output_packet.message->get_len());
+	      rv = true;
+
+	      uint32_t raw_client_key;
+	      if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination,
+							raw_client_key))
+		{
+		  UXR_AGENT_LOG_MESSAGE(
+					UXR_DECORATE_YELLOW("[** <<RPMsg>> **]"),
+					raw_client_key,
+					output_packet.message->get_buf(),
+					output_packet.message->get_len());
+		}
 	    }
+	  else
+	    {
+	      std::stringstream ss;
+	      ss << UXR_COLOR_RED
+		 << "Error while sending message: "
+		 << transport_rc_to_str(transport_rc)
+		 << ". Expected to send "
+		 << output_packet.message->get_len()
+		 << " bytes, but sent "
+		 << bytes_written
+		 << "instead"
+		 << UXR_COLOR_RESET;
+	      UXR_AGENT_LOG_ERROR(
+				  ss.str(),
+				  "{} agent error",
+				  "RPmsg");
+	    }
+	  return rv;
 	}
-      return rv;
+      catch (const std::exception& e)
+	{
+	  UXR_AGENT_LOG_ERROR(
+			      UXR_DECORATE_RED("Error sending msg."),
+			      "custom {} agent, exception: {}",
+			      "RPmsg", e.what());
+
+	  return false;
+	}
     }
 
   } // namespace uxr
