@@ -47,15 +47,13 @@ namespace eprosima {
     RPMsgAgent::aligned_copy(size_t len, uint8_t *src, uint8_t *dst)
     {
       size_t len_copy = len;
-      for ( size_t i = 0; i<len_copy; i++ )
-	printf("0x%x\r\n", src[i]);
 
       /* Copy data byte by byte until aligned */
       while ( len && (
 		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
 		      (((uintptr_t)src) % sizeof(uint32_t))))
 	{
-	  *dst = *src;
+	  *dst = *(const uint8_t *)src;
 	  dst++;
 	  src++;
 	  len--;
@@ -73,7 +71,7 @@ namespace eprosima {
       /* Leftover data copied again bytes by byte. */
       for (; len != 0; dst++, src++, len--)
 	{
-	  *dst = *src;
+	  *dst = *(const uint8_t *)src;
 	}
 
       printf("Writing %ld bytes to dst:", len_copy);
@@ -176,17 +174,10 @@ namespace eprosima {
       /* Debug prints. */
       printf("=================================================\r\n");
       printf("rcv_phys_addr: 0x%x\r\n", udma1_phys_addr);
-      printf("udmabuf1: 0x%x\r\n", udmabuf1);
       printf("bytes_read = 0x%lx, vs len = 0x%lx\r\n", bytes_read,
 	     len);
 
-      for ( size_t i = 0; i<bytes_read; i++)
-	buf[i] = udmabuf1[i];
-
-      for ( size_t i = 0; i<bytes_read; i++)
-	printf("0x%x\r\n", buf[i]);
-
-      //aligned_copy(bytes_read, udmabuf1, buf);
+      aligned_copy(bytes_read, udmabuf1, buf);
 
       rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
