@@ -200,7 +200,7 @@ namespace eprosima {
       UXR_PRINTF("-------------------------------------------", NULL);
       UXR_PRINTF("| Start UDMABUF Initialization process... |", NULL);
       UXR_PRINTF("-------------------------------------------", NULL);
-      buf_size = 8232; /* Ramdom value, should be changed later!! */
+      buf_size = 0x00800000; /* Matching DT, 8MiB */
       UXR_PRINTF("Setting up the UDMABUF0.", buf_size);
       if (-1 != (udmabuf0_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
 	{
@@ -220,6 +220,8 @@ namespace eprosima {
 	  UXR_ERROR("Unable to open /dev/udmabuf0.", strerror(errno));
 	  return false;
 	}
+      UXR_PRINTF("udmabuf0_fd.fd:", udmabuf0_fd.fd);
+      printf("udmabuf0: 0x%x\r\n", udmabuf0);
 
       if (-1 != (fd = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)))
 	{
@@ -237,6 +239,7 @@ namespace eprosima {
 	  if ( -1 == *((int8_t *)udmabuf1) )
 	    UXR_ERROR("Failde to mmap udmabuf1", strerror(errno));
 
+	  /* THIS PART WAS WRONG IN KRP_TL_UDMA !!! */
 	  /* Initialize the bufer with zeros. */
 	  for ( size_t i = 0; i<buf_size; i++)
 	    udmabuf1[i] = 0;
@@ -248,6 +251,8 @@ namespace eprosima {
 	  UXR_ERROR("Unable to open /dev/udmabuf1.", strerror(errno));
 	  return false;
 	}
+      UXR_PRINTF("udmabuf1_fd.fd:", udmabuf0_fd.fd);
+      printf("udmabuf1: 0x%x, udmabuf1_fd.fd: 0x%x\r\n", udmabuf1, udmabuf1_fd.fd);
 
       if (-1 != (fd = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)))
 	{
@@ -258,6 +263,7 @@ namespace eprosima {
 	}
 
       /**************************************************************/
+      UXR_PRINTF("Try and read UDMABUF0 physical address.", NULL);
       if (-1 != (udmabuf0_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf0/phys_addr", O_RDONLY)))
 	{
 	  if ( 0 >= read(udmabuf0_fd_addr.fd, udma0_attr, 1024))
@@ -272,6 +278,7 @@ namespace eprosima {
 	  return false;
 	}
 
+      UXR_PRINTF("Try and read UDMABUF1 physical address.", NULL);
       if (-1 != (udmabuf1_fd_addr.fd  = open("/sys/class/u-dma-buf/udmabuf1/phys_addr", O_RDONLY)))
 	{
 	  if ( 0 >= read(udmabuf1_fd_addr.fd, udma1_attr, 1024))
