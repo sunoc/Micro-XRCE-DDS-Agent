@@ -73,7 +73,6 @@ namespace eprosima {
     void
     RPMsgAgent::aligned_copy(size_t len, uint8_t *src, uint8_t *dst)
     {
-      size_t len_copy = len;
 
       /* Copy data byte by byte until aligned */
       while ( len && (
@@ -101,9 +100,9 @@ namespace eprosima {
 	  *dst = *(const uint8_t *)src;
 	}
 
-      printf("Writing %ld bytes to dst:", len_copy);
-      for ( size_t i = 0; i<len_copy; i++ )
-	printf("0x%x\r\n", dst[i]);
+      // printf("Writing %ld bytes to dst:", len_copy);
+      // for ( size_t i = 0; i<len_copy; i++ )
+      // 	printf("0x%x\r\n", dst[i]);
     }
 
     /*****************************************************************
@@ -201,8 +200,10 @@ namespace eprosima {
       /* Debug prints. */
       printf("=================================================\r\n");
       printf("rcv_phys_addr: 0x%x\r\n", udma1_phys_addr);
-      printf("bytes_read = 0x%lx, vs len = 0x%lx\r\n", bytes_read,
-	     len);
+      printf("bytes_read = 0x%lx, vs len = 0x%lx\r\n", bytes_read, len);
+
+      for ( size_t i = 0; i<bytes_read; i++ )
+	printf("0x%x\r\n", udmabuf1[i]);
 
       aligned_copy(bytes_read, udmabuf1, buf);
 
