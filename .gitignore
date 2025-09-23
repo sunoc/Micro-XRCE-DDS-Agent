@@ -86,6 +86,9 @@ compile_commands.json
 CTestTestfile.cmake
 build*
 
+### Emacs ###
+tramp.*
+
 ### Eclipse ###
 
 .metadata

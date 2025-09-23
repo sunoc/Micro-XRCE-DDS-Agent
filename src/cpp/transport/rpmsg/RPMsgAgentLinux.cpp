@@ -42,18 +42,18 @@ namespace eprosima {
       , addr_{addr}
       , poll_fd_{}
       , buffer_{0}
-      , framing_io_(addr,
-		    std::bind(&RPMsgAgent::write_data, this,
-			      std::placeholders::_1,
-			      std::placeholders::_2,
-			      std::placeholders::_3),
-		    std::bind(&RPMsgAgent::read_data, this,
-			      std::placeholders::_1,
-			      std::placeholders::_2,
-			      std::placeholders::_3,
-			      std::placeholders::_4))
-      , opt{}
-      , charfd{}
+      // , framing_io_(addr,
+      // 		    std::bind(&RPMsgAgent::write_data, this,
+      // 			      std::placeholders::_1,
+      // 			      std::placeholders::_2,
+      // 			      std::placeholders::_3),
+      // 		    std::bind(&RPMsgAgent::read_data, this,
+      // 			      std::placeholders::_1,
+      // 			      std::placeholders::_2,
+      // 			      std::placeholders::_3,
+      // 			      std::placeholders::_4))
+      // , opt{}
+      // , charfd{}
     {}
 
     /*****************************************************************
@@ -73,7 +73,6 @@ namespace eprosima {
     void
     RPMsgAgent::aligned_copy(size_t len, uint8_t *src, uint8_t *dst)
     {
-
       /* Copy data byte by byte until aligned */
       while ( len && (
 		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
@@ -99,10 +98,6 @@ namespace eprosima {
 	{
 	  *dst = *(const uint8_t *)src;
 	}
-
-      // printf("Writing %ld bytes to dst:", len_copy);
-      // for ( size_t i = 0; i<len_copy; i++ )
-      // 	printf("0x%x\r\n", dst[i]);
     }
 
     /*****************************************************************
@@ -120,20 +115,32 @@ namespace eprosima {
       gpio[1].data = gpio[1].data | 0x2;
 #endif
       size_t rv = 0;
-      ssize_t bytes_written;
+      ssize_t bytes_written = 0;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
       /* Put the data in the udmabuf, alligned by 32bits. */
       aligned_copy(len, buf, udmabuf0);
+
+      /* Debug prints. */
+      printf("=================================================\r\n");
+      printf("snd_phys_addr: 0x%x\r\n", udma0_phys_addr);
+      printf("len = 0x%lx\r\n", len);
+
+      for ( size_t i = 0; i<len; i++)
+	printf("0x%x\r\n", udmabuf0[i]);
 
       /* Put the length and physical addr in the rpmsg buf.
 	 Note that the offset udmabuff address is NOT sent. */
       for (int i = 0; i<4; i++)
 	udmabuf_payload[i] = (udma0_phys_addr >> i*8) & 0x00FF;
       for (int i = 0; i<4; i++)
-	udmabuf_payload[i+4] = ((unsigned long)len >> i*8) & 0x00FF;
+        udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
 
       bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
+
+      for ( ssize_t i = 0; i<bytes_written; i++)
+	printf("0x%x\r\n", udmabuf_payload[i]);
+
       if ( UDMA_ADDR_LEN == bytes_written )
 	rv = len;
       else
@@ -163,7 +170,7 @@ namespace eprosima {
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
       size_t rcv_phys_addr = 0;
-      size_t bytes_read = 0;
+      ssize_t bytes_read = 0;
 
       if ( 0 >= timeout )
 	{
@@ -194,22 +201,86 @@ namespace eprosima {
 	{
 	  UXR_ERROR("Wrong udmabuf package size received.",
 		    strerror(errno));
+	  transport_rc = TransportRc::server_error;
 	  return 0;
 	}
 
       /* Debug prints. */
       printf("=================================================\r\n");
       printf("rcv_phys_addr: 0x%x\r\n", udma1_phys_addr);
-      printf("bytes_read = 0x%lx, vs len = 0x%lx\r\n", bytes_read, len);
-
-      for ( size_t i = 0; i<bytes_read; i++ )
-	printf("0x%x\r\n", udmabuf1[i]);
+      printf("bytes_read = 0x%lx, len = 0x%lx\r\n", bytes_read, len);
 
       aligned_copy(bytes_read, udmabuf1, buf);
-
       rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
+      for ( ssize_t i = 0; i<bytes_read; i++)
+	printf("0x%x\r\n", buf[i]);
+
       return bytes_read;
+
+//       if ( bytes_read == (ssize_t)len ) /* Exact size */
+// 	{
+// #ifdef GPIO_MONITORING
+// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data | 0x2;
+// #endif
+// 	  aligned_copy(bytes_read, udmabuf1, buf);
+
+// 	  /* All data has been used, can release it. */
+// 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+// #ifdef GPIO_MONITORING
+// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data & ~(0x2);
+// #endif
+// 	}
+//       else if ( bytes_read > (ssize_t)len ) /* Got too much data */
+// 	{
+// #ifdef GPIO_MONITORING
+// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data | 0x2;
+// #endif
+// 	  aligned_copy(len, udmabuf1, buf);
+
+// 	  /* Update the data length */
+// 	  for (int i = 0; i<4; i++)
+// 	    in_data.data[i+4]
+// 	      = ((unsigned long)(bytes_read - len) >> i * 8) & 0x00FF;
+
+// 	  /* Update the data pointer */
+// 	  aligned_copy((bytes_read - len), buf+len, udmabuf1);
+
+// 	  /* Disabling remoteproc interrupts when
+// 	     accessing the queue. */
+// 	  metal_irq_flag = metal_irq_save_disable();
+// 	  rpmsg_rcv_msg_q.push_front(in_data);
+// 	  metal_irq_restore_enable(metal_irq_flag);
+
+// #ifdef GPIO_MONITORING
+// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data & ~(0x2);
+// #endif
+// 	}
+//       else /* Got not enough data */
+// 	{
+// #ifdef GPIO_MONITORING
+// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data | 0x2;
+// #endif
+// 	  aligned_copy(bytes_read, udmabuf1, buf);
+
+// 	  /* All data has been used, can release it. */
+// 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+// #ifdef GPIO_MONITORING
+// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
+// 	  gpio[2].data = gpio[2].data & ~(0x2);
+// #endif
+// 	  /* Return the length we have. */
+// 	  return bytes_read;
+// 	}
+
+//       return len;
     }
 
     /*****************************************************************
@@ -227,56 +298,44 @@ namespace eprosima {
       uint8_t remote_addr = 0x00;
       ssize_t bytes_read = 0;
 
-      try
+      do
 	{
-	  bytes_read = framing_io_.read_framed_msg(
-						   buffer_,
-						   SERVER_BUFFER_SIZE,
-						   remote_addr,
-						   timeout,
-						   transport_rc);
-
-	  if ( 0 < bytes_read && TransportRc::ok == transport_rc )
-	    {
-	      input_packet.message.reset(new InputMessage(buffer_,
-							  static_cast<size_t>(bytes_read)));
-	      input_packet.source = RPMsgEndPoint(remote_addr);
-	      rv = true;
-
-
-	      uint32_t raw_client_key;
-	      if ( Server<RPMsgEndPoint>::get_client_key(input_packet.source,
-							 raw_client_key) )
-		{
-		  UXR_AGENT_LOG_MESSAGE(
-					UXR_DECORATE_YELLOW("[==>> RPMsg <<==]"),
-					raw_client_key,
-					input_packet.message->get_buf(),
-					input_packet.message->get_len());
-		}
-	    }
-	  else if ( TransportRc::timeout_error != transport_rc )
-	    {
-	      std::stringstream ss;
-	      ss << UXR_COLOR_RED << "Error while receiving message: "
-		 << transport_rc_to_str(transport_rc) << UXR_COLOR_RESET;
-	      UXR_AGENT_LOG_ERROR(
-				  ss.str(),
-				  "{} agent error",
-				  "RPMsg");
-	    }
-	  return rv;
+	  bytes_read = read_data(buffer_,
+				 SERVER_BUFFER_SIZE,
+				 timeout,
+				 transport_rc);
 	}
-      catch (const std::exception& e)
+      while ((0 == bytes_read) && (0 < timeout));
+
+      if ( 0 < bytes_read && TransportRc::ok == transport_rc )
 	{
+	  input_packet.message.reset(new InputMessage(buffer_,
+						      static_cast<size_t>(bytes_read)));
+	  input_packet.source = RPMsgEndPoint(remote_addr);
+	  rv = true;
+
+	  uint32_t raw_client_key;
+	  if ( Server<RPMsgEndPoint>::get_client_key(input_packet.source,
+						     raw_client_key) )
+	    {
+	      UXR_AGENT_LOG_MESSAGE(
+				    UXR_DECORATE_YELLOW("[==>> RPMsg <<==]"),
+				    raw_client_key,
+				    input_packet.message->get_buf(),
+				    input_packet.message->get_len());
+	    }
+	}
+      else
+	{
+	  std::stringstream ss;
+	  ss << UXR_COLOR_RED << "Error while receiving message: "
+	     << transport_rc_to_str(transport_rc) << UXR_COLOR_RESET;
 	  UXR_AGENT_LOG_ERROR(
-			      UXR_DECORATE_RED("Error receiving msg."),
-			      "custom {} agent, exception: {}",
-			      "RPMsg", e.what());
-	  transport_rc = TransportRc::server_error;
-
-	  return false;
+			      ss.str(),
+			      "{} agent error",
+			      "RPMsg");
 	}
+      return rv;
     }
 
     /*****************************************************************
@@ -290,60 +349,46 @@ namespace eprosima {
 			     TransportRc& transport_rc)
     {
       bool rv = false;
-
-      try
-	{
-	  ssize_t bytes_written =
-	    framing_io_.write_framed_msg(
+      ssize_t bytes_written = write_data(
 					 output_packet.message->get_buf(),
 					 output_packet.message->get_len(),
-					 output_packet.destination.get_addr(),
 					 transport_rc);
-          if ((0 < bytes_written)
-              && (static_cast<size_t>(bytes_written)
-		  == output_packet.message->get_len()) )
-	    {
-	      rv = true;
 
-	      uint32_t raw_client_key;
-	      if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination,
-							raw_client_key))
-		{
-		  UXR_AGENT_LOG_MESSAGE(
-					UXR_DECORATE_YELLOW("[** <<RPMsg>> **]"),
-					raw_client_key,
-					output_packet.message->get_buf(),
-					output_packet.message->get_len());
-		}
-	    }
-	  else
-	    {
-	      std::stringstream ss;
-	      ss << UXR_COLOR_RED
-		 << "Error while sending message: "
-		 << transport_rc_to_str(transport_rc)
-		 << ". Expected to send "
-		 << output_packet.message->get_len()
-		 << " bytes, but sent "
-		 << bytes_written
-		 << "instead"
-		 << UXR_COLOR_RESET;
-	      UXR_AGENT_LOG_ERROR(
-				  ss.str(),
-				  "{} agent error",
-				  "RPmsg");
-	    }
-	  return rv;
-	}
-      catch (const std::exception& e)
+      if ((0 < bytes_written)
+	  && (static_cast<size_t>(bytes_written)
+	      == output_packet.message->get_len()) )
 	{
-	  UXR_AGENT_LOG_ERROR(
-			      UXR_DECORATE_RED("Error sending msg."),
-			      "custom {} agent, exception: {}",
-			      "RPmsg", e.what());
+	  rv = true;
 
-	  return false;
+	  uint32_t raw_client_key;
+	  if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination,
+						    raw_client_key))
+	    {
+	      UXR_AGENT_LOG_MESSAGE(
+				    UXR_DECORATE_YELLOW("[** <<RPMsg>> **]"),
+				    raw_client_key,
+				    output_packet.message->get_buf(),
+				    output_packet.message->get_len());
+	    }
 	}
+      else
+	{
+	  std::stringstream ss;
+	  ss << UXR_COLOR_RED
+	     << "Error while sending message: "
+	     << transport_rc_to_str(transport_rc)
+	     << ". Expected to send "
+	     << output_packet.message->get_len()
+	     << " bytes, but sent "
+	     << bytes_written
+	     << "instead"
+	     << UXR_COLOR_RESET;
+	  UXR_AGENT_LOG_ERROR(
+			      ss.str(),
+			      "{} agent error",
+			      "RPmsg");
+	}
+      return rv;
     }
 
   } // namespace uxr

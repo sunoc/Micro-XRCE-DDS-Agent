@@ -200,7 +200,7 @@ namespace eprosima {
       UXR_PRINTF("-------------------------------------------", NULL);
       UXR_PRINTF("| Start UDMABUF Initialization process... |", NULL);
       UXR_PRINTF("-------------------------------------------", NULL);
-      buf_size = 0x00800000; /* Matching DT, 8MiB */
+      buf_size = 0x00400000; /* Matching DT */
       UXR_PRINTF("Setting up the UDMABUF0.", buf_size);
       if (-1 != (udmabuf0_fd.fd  = open("/dev/udmabuf0", O_RDWR | O_SYNC)))
 	{
@@ -221,7 +221,6 @@ namespace eprosima {
 	  return false;
 	}
       UXR_PRINTF("udmabuf0_fd.fd:", udmabuf0_fd.fd);
-      printf("udmabuf0: 0x%x\r\n", udmabuf0);
 
       if (-1 != (fd = open("/sys/class/u-dma-buf/udmabuf0/sync_mode", O_WRONLY)))
 	{
@@ -252,7 +251,6 @@ namespace eprosima {
 	  return false;
 	}
       UXR_PRINTF("udmabuf1_fd.fd:", udmabuf0_fd.fd);
-      printf("udmabuf1: 0x%x, udmabuf1_fd.fd: 0x%x\r\n", udmabuf1, udmabuf1_fd.fd);
 
       if (-1 != (fd = open("/sys/class/u-dma-buf/udmabuf1/sync_mode", O_WRONLY)))
 	{
