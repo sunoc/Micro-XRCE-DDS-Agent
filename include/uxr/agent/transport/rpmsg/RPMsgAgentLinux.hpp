@@ -164,9 +164,6 @@ namespace eprosima {
       const uint8_t addr_;
       struct pollfd poll_fd_;
       uint8_t buffer_[SERVER_BUFFER_SIZE];
-      // FramingIO framing_io_;
-      // int opt;
-      // int charfd;
 
       /* udmabuf specific variables*/
       struct pollfd udmabuf0_fd, udmabuf0_fd_addr;

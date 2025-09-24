@@ -42,18 +42,6 @@ namespace eprosima {
       , addr_{addr}
       , poll_fd_{}
       , buffer_{0}
-      // , framing_io_(addr,
-      // 		    std::bind(&RPMsgAgent::write_data, this,
-      // 			      std::placeholders::_1,
-      // 			      std::placeholders::_2,
-      // 			      std::placeholders::_3),
-      // 		    std::bind(&RPMsgAgent::read_data, this,
-      // 			      std::placeholders::_1,
-      // 			      std::placeholders::_2,
-      // 			      std::placeholders::_3,
-      // 			      std::placeholders::_4))
-      // , opt{}
-      // , charfd{}
     {}
 
     /*****************************************************************
