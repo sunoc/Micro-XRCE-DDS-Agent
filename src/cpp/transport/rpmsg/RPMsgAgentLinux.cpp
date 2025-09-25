@@ -109,14 +109,6 @@ namespace eprosima {
       /* Put the data in the udmabuf, alligned by 32bits. */
       aligned_copy(len, buf, udmabuf0);
 
-      /* Debug prints. */
-      printf("=================================================\r\n");
-      printf("snd_phys_addr: 0x%x\r\n", udma0_phys_addr);
-      printf("len = 0x%lx\r\n", len);
-
-      for ( size_t i = 0; i<len; i++)
-	printf("0x%x\r\n", udmabuf0[i]);
-
       /* Put the length and physical addr in the rpmsg buf.
 	 Note that the offset udmabuff address is NOT sent. */
       for (int i = 0; i<4; i++)
@@ -125,9 +117,6 @@ namespace eprosima {
         udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
 
       bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
-
-      for ( ssize_t i = 0; i<bytes_written; i++)
-	printf("0x%x\r\n", udmabuf_payload[i]);
 
       if ( UDMA_ADDR_LEN == bytes_written )
 	rv = len;
@@ -193,82 +182,11 @@ namespace eprosima {
 	  return 0;
 	}
 
-      /* Debug prints. */
-      printf("=================================================\r\n");
-      printf("rcv_phys_addr: 0x%x\r\n", udma1_phys_addr);
-      printf("bytes_read = 0x%lx, len = 0x%lx\r\n", bytes_read, len);
 
       aligned_copy(bytes_read, udmabuf1, buf);
       rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
-      for ( ssize_t i = 0; i<bytes_read; i++)
-	printf("0x%x\r\n", buf[i]);
-
       return bytes_read;
-
-//       if ( bytes_read == (ssize_t)len ) /* Exact size */
-// 	{
-// #ifdef GPIO_MONITORING
-// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
-// 	  gpio[2].data = gpio[2].data | 0x2;
-// #endif
-// 	  aligned_copy(bytes_read, udmabuf1, buf);
-
-// 	  /* All data has been used, can release it. */
-// 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
-
-// #ifdef GPIO_MONITORING
-// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
-// 	  gpio[2].data = gpio[2].data & ~(0x2);
-// #endif
-// 	}
-//       else if ( bytes_read > (ssize_t)len ) /* Got too much data */
-// 	{
-// #ifdef GPIO_MONITORING
-// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
-// 	  gpio[2].data = gpio[2].data | 0x2;
-// #endif
-// 	  aligned_copy(len, udmabuf1, buf);
-
-// 	  /* Update the data length */
-// 	  for (int i = 0; i<4; i++)
-// 	    in_data.data[i+4]
-// 	      = ((unsigned long)(bytes_read - len) >> i * 8) & 0x00FF;
-
-// 	  /* Update the data pointer */
-// 	  aligned_copy((bytes_read - len), buf+len, udmabuf1);
-
-// 	  /* Disabling remoteproc interrupts when
-// 	     accessing the queue. */
-// 	  metal_irq_flag = metal_irq_save_disable();
-// 	  rpmsg_rcv_msg_q.push_front(in_data);
-// 	  metal_irq_restore_enable(metal_irq_flag);
-
-// #ifdef GPIO_MONITORING
-// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
-// 	  gpio[2].data = gpio[2].data & ~(0x2);
-// #endif
-// 	}
-//       else /* Got not enough data */
-// 	{
-// #ifdef GPIO_MONITORING
-// 	  /* turns on PIN 1 on GPIO channel 2 (green)*/
-// 	  gpio[2].data = gpio[2].data | 0x2;
-// #endif
-// 	  aligned_copy(bytes_read, udmabuf1, buf);
-
-// 	  /* All data has been used, can release it. */
-// 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
-
-// #ifdef GPIO_MONITORING
-// 	  /* turns off PIN 1 on GPIO channel 2 (green)*/
-// 	  gpio[2].data = gpio[2].data & ~(0x2);
-// #endif
-// 	  /* Return the length we have. */
-// 	  return bytes_read;
-// 	}
-
-//       return len;
     }
 
     /*****************************************************************
