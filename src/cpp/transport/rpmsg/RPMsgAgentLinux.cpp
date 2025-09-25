@@ -122,6 +122,7 @@ namespace eprosima {
 	rv = len;
       else
 	{
+	  printf("bytes_written: %d\r\n", bytes_written);
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
 	}
@@ -144,6 +145,10 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
+#ifdef GPIO_MONITORING
+      /* turns on PIN 1 on GPIO channel 3 (purple)*/
+      gpio[3].data = gpio[3].data | 0x2;
+#endif
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
       size_t rcv_phys_addr = 0;
@@ -186,6 +191,10 @@ namespace eprosima {
       aligned_copy(bytes_read, udmabuf1, buf);
       rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
+#ifdef GPIO_MONITORING
+      /* turns off PIN 1 on GPIO channel 3 (purple)*/
+      gpio[3].data = gpio[3].data & ~(0x2);
+#endif
       return bytes_read;
     }
 
