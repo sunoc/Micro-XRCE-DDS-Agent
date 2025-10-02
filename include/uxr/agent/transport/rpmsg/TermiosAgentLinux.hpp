@@ -20,6 +20,10 @@ public:
 
     ~TermiosRPMsgAgent();
 
+    void aligned_copy (size_t len, uint8_t *src, uint8_t *dst);
+
+    double what_time_is_it ();
+
     int getfd() { return poll_fd_.fd; };
 
     void send_shutdown(int filedescriptor);

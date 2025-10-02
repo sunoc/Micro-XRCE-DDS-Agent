@@ -34,6 +34,44 @@ TermiosRPMsgAgent::~TermiosRPMsgAgent()
     }
 }
 
+void
+TermiosRPMsgAgent::aligned_copy (size_t len, uint8_t *src, uint8_t *dst)
+{
+  /* Copy data byte by byte until aligned */
+  while (len
+         && ((((uintptr_t)dst) % sizeof (uint32_t))
+             || (((uintptr_t)src) % sizeof (uint32_t))))
+    {
+      *dst = *src;
+      dst++;
+      src++;
+      len--;
+    }
+
+  /* Copy data by 32bits. */
+  for (; (uint32_t)len >= (uint32_t)sizeof (uint32_t);
+       dst += sizeof (uint32_t), src += sizeof (uint32_t),
+       len -= sizeof (uint32_t))
+    {
+      *(uint32_t *)dst = *(const uint32_t *)src;
+    }
+
+  /* Leftover data copied again bytes by byte. */
+  for (; len != 0; dst++, src++, len--)
+    {
+      *dst = *src;
+    }
+}
+
+double
+TermiosRPMsgAgent::what_time_is_it ()
+{
+  struct timespec now;
+  clock_gettime (CLOCK_REALTIME, &now);
+  return now.tv_sec + now.tv_nsec * 1e-9;
+}
+
+
 /*******************************************************************************
 *
 * @brief        This function goal is to send a shutdown package
@@ -345,6 +383,12 @@ bool TermiosRPMsgAgent::init()
     int ret;
     char udma_addr_hello[8];
 
+    /* rw test variables. */
+    double start_time, total_duration_rd, total_duration_wt;
+    uint32_t iterations = 0x1000;
+    uint32_t test_shm = 0x100;
+    uint8_t test_pl[test_shm], rcv_pl[test_shm];
+
     /* udmabuf sync_mode related vars */
     char  attr[1024];
     unsigned long  sync_mode = 1;
@@ -507,6 +551,30 @@ bool TermiosRPMsgAgent::init()
       }
     /**************************************************************************/
     UXR_PRINTF("UDMABUF0 and UDMABUF1 devices opening is successful.", NULL);
+
+    /**************************************************************************/
+    UXR_PRINTF("Testing UDMABUF0 and UDMABUF1:", NULL);
+    total_duration_rd = 0;
+    total_duration_wt = 0;
+    for (size_t i = 0; i < iterations; i++)
+      {
+	for (size_t j = 0; j < test_shm; j++)
+	  test_pl[j] = rand ();
+
+	start_time = what_time_is_it ();
+	aligned_copy (test_shm, test_pl, udmabuf0);
+	total_duration_wt += what_time_is_it () - start_time;
+
+	start_time = what_time_is_it ();
+	aligned_copy (test_shm, udmabuf0, rcv_pl);
+	total_duration_rd += what_time_is_it () - start_time;
+      }
+    UXR_PRINTF ("UDMABUF0: Perf. w/r %d bytes over %d tries\r\n", test_shm, iterations);
+    UXR_PRINTF ("READ: %lf MB/s \r\n",
+           2 * ((test_shm / (total_duration_rd / iterations)) / 1000000));
+    UXR_PRINTF ("WRITE: %lf MB/s \r\n",
+           2 * ((test_shm / (total_duration_wt / iterations)) / 1000000));
+
 
     /**************************************************************************/
     UXR_PRINTF("Sending UDMA0 addr message to the remoteproc", udma0_phys_addr);
