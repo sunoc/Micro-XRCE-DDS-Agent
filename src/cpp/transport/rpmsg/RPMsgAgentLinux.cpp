@@ -106,27 +106,41 @@ namespace eprosima {
       ssize_t bytes_written = 0;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
-      /* Put the data in the udmabuf, alligned by 32bits. */
-      aligned_copy(len, buf, udmabuf0);
-
-      /* Put the length and physical addr in the rpmsg buf.
-	 Note that the offset udmabuff address is NOT sent. */
-      for (int i = 0; i<4; i++)
-	udmabuf_payload[i] = (udma0_phys_addr >> i*8) & 0x00FF;
-      for (int i = 0; i<4; i++)
-        udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
-
-      bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
-
-      if ( UDMA_ADDR_LEN == bytes_written )
-	rv = len;
-      else
+      if ( len <= CUTOFF_SIZE ) /* Small payload */
 	{
-	  printf("bytes_written: %d\r\n", bytes_written);
-	  UXR_ERROR("sending data failed with errno", strerror(errno));
-          transport_rc = TransportRc::server_error;
+	  bytes_written = rpmsg_trysend(&lept, buf, len);
+	  if ( 0 < bytes_written )
+	    rv = size_t(bytes_written);
+	  else
+	    {
+	      UXR_ERROR("sending data failed with errno", strerror(errno));
+	      transport_rc = TransportRc::server_error;
+	    }
 	}
+      else /* Large payload */
+	{
 
+	  /* Put the data in the udmabuf, alligned by 32bits. */
+	  aligned_copy(len, buf, udmabuf0);
+
+	  /* Put the length and physical addr in the rpmsg buf.
+	     Note that the offset udmabuff address is NOT sent. */
+	  for (int i = 0; i<4; i++)
+	    udmabuf_payload[i] = (udma0_phys_addr >> i*8) & 0x00FF;
+	  for (int i = 0; i<4; i++)
+	    udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
+
+	  bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
+
+	  if ( UDMA_ADDR_LEN == bytes_written )
+	    rv = len;
+	  else
+	    {
+	      printf("bytes_written: %d\r\n", bytes_written);
+	      UXR_ERROR("sending data failed with errno", strerror(errno));
+	      transport_rc = TransportRc::server_error;
+	    }
+	}
 #ifdef GPIO_MONITORING
       /* turns off PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data & ~(0x2);
@@ -145,10 +159,6 @@ namespace eprosima {
 			  int timeout,
 			  TransportRc& transport_rc)
     {
-#ifdef GPIO_MONITORING
-      /* turns on PIN 1 on GPIO channel 3 (purple)*/
-      gpio[3].data = gpio[3].data | 0x2;
-#endif
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
       size_t rcv_phys_addr = 0;
@@ -172,29 +182,99 @@ namespace eprosima {
       metal_irq_restore_enable(metal_irq_flag);
 
       /* Get the real data length from the rpmsg pl. */
-      if ( in_data.len == UDMA_ADDR_LEN )
+      /************************************************************************/
+      if ( in_data.len == UDMA_ADDR_LEN ) /* Large payload */
 	{
+#ifdef GPIO_MONITORING
+	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
+	  gpio[3].data = gpio[3].data | 0x2;
+#endif
 	  for ( int i = 0; i<4; i++ ) /* Read 4 bytes */
 	    rcv_phys_addr += ( in_data.data[i] << i*8 );
 	  for ( int i = 0; i<4; i++ ) /* Read 4 bytes */
 	    bytes_read += ( in_data.data[i+4] << i*8 );
+
+	  aligned_copy(bytes_read, udmabuf1, buf);
+	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+#ifdef GPIO_MONITORING
+	  /* turns off PIN 1 on GPIO channel 3 (purple)*/
+	  gpio[3].data = gpio[3].data & ~(0x2);
+#endif
+	}
+      /************************************************************************/
+      else if ( CUTOFF_SIZE  <= in_data.len ) /* Small payload */
+	{
+	  if ( in_data.len == len )
+	    {
+#ifdef GPIO_MONITORING
+	      /* turns on PIN 1 on GPIO channel 2 (green)*/
+	      gpio[2].data = gpio[2].data | 0x2;
+#endif
+	      aligned_copy(len, in_data.data, buf);
+
+	      /* All data has been used, can release it. */
+	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+	      bytes_read =  len;
+#ifdef GPIO_MONITORING
+	      /* turns off PIN 1 on GPIO channel 2 (green)*/
+	      gpio[2].data = gpio[2].data & ~(0x2);
+#endif
+	    }
+	  else if ( in_data.len > len )
+	    {
+#ifdef GPIO_MONITORING
+	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data | 0x1;
+#endif
+	      aligned_copy(len, in_data.data, buf);
+
+	      /* Trunkate the first element of the queue. */
+	      in_data.len   -=  len;
+	      in_data.data  +=  len;
+
+	      /* Disabling remoteproc interrupts when
+		 accessing the queue. */
+	      metal_irq_flag = metal_irq_save_disable();
+	      rpmsg_rcv_msg_q.push_front(in_data);
+	      metal_irq_restore_enable(metal_irq_flag);
+
+	      bytes_read =  len;
+
+#ifdef GPIO_MONITORING
+	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
+	    }
+	  else  //if ( in_data.len < len)
+	    {
+#ifdef GPIO_MONITORING
+	      /* turns on PIN 1 on GPIO channel 3 (purple)*/
+	      gpio[3].data = gpio[3].data | 0x2;
+#endif
+	      aligned_copy(in_data.len, in_data.data, buf);
+
+	      /* All data has been used, can release it. */
+	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+	      bytes_read =  in_data.len;
+
+#ifdef GPIO_MONITORING
+	      /* turns off PIN 0 on GPIO channel 3 (purple)*/
+	      gpio[3].data = gpio[3].data & ~(0x2);
+#endif
+
+	    }
 	}
       else
 	{
-	  UXR_ERROR("Wrong udmabuf package size received.",
+	  UXR_ERROR("Wrong package size received.",
 		    strerror(errno));
 	  transport_rc = TransportRc::server_error;
 	  return 0;
 	}
 
-
-      aligned_copy(bytes_read, udmabuf1, buf);
-      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
-
-#ifdef GPIO_MONITORING
-      /* turns off PIN 1 on GPIO channel 3 (purple)*/
-      gpio[3].data = gpio[3].data & ~(0x2);
-#endif
       return bytes_read;
     }
 

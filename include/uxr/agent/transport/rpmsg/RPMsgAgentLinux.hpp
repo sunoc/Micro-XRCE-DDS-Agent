@@ -74,6 +74,9 @@ extern "C" {
 #define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
 #define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
 
+/* Hybrid mode cutoff size in bytes */
+#define CUTOFF_SIZE 200
+
 #define UDMA_ADDR_LEN           8
 
 #define RPMSG_BUS_SYS "/sys/bus/rpmsg"
