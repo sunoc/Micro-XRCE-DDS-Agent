@@ -203,7 +203,7 @@ namespace eprosima {
 #endif
 	}
       /************************************************************************/
-      else if ( CUTOFF_SIZE  <= in_data.len ) /* Small payload */
+      else if ( CUTOFF_SIZE  >= in_data.len ) /* Small payload */
 	{
 	  if ( in_data.len == len )
 	    {
