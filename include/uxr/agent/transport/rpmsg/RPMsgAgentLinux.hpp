@@ -75,7 +75,7 @@ extern "C" {
 #define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
 
 /* Hybrid mode cutoff size in bytes */
-#define CUTOFF_SIZE 200
+#define CUTOFF_SIZE 345
 
 #define UDMA_ADDR_LEN           8
 
