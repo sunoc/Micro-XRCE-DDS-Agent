@@ -106,7 +106,7 @@ namespace eprosima {
       ssize_t bytes_written = 0;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
-      if ( len <= CUTOFF_SIZE ) /* Small payload */
+      if ( CUTOFF_SIZE >= len  ) /* Small payload */
 	{
 	  bytes_written = rpmsg_trysend(&lept, buf, len);
 	  if ( 0 < bytes_written )
@@ -203,7 +203,7 @@ namespace eprosima {
 #endif
 	}
       /************************************************************************/
-      else if ( CUTOFF_SIZE  <= in_data.len ) /* Small payload */
+      else if ( CUTOFF_SIZE  >= in_data.len ) /* Small payload */
 	{
 	  if ( in_data.len == len )
 	    {
