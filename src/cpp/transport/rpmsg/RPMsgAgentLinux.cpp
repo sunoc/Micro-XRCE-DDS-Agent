@@ -26,8 +26,6 @@ namespace eprosima {
 			      std::placeholders::_2,
 			      std::placeholders::_3,
 			      std::placeholders::_4))
-      , opt{}
-      , charfd{}
     {}
 
     /**************************************************************************
@@ -92,7 +90,7 @@ namespace eprosima {
       ssize_t bytes_written;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
-      printf("w len: %ld\r\n", len);
+      // printf("w len: 0x%lx\r\n", len);
       if ( CUTOFF_SIZE >= len  ) /* Small payload */
 	{
 	  bytes_written = rpmsg_trysend(&lept, buf, len);
