@@ -75,8 +75,6 @@ extern "C" {
 
 #define UDMA_ADDR_LEN           8
 
-#define RPMSG_BUS_SYS "/sys/bus/rpmsg"
-
 #define SHUTDOWN_MSG 0xEF56A55A
 
 /* message printing utils */
@@ -137,7 +135,16 @@ namespace eprosima {
 
       virtual bool fini() = 0;
 
-      void aligned_copy(size_t len, uint8_t* src, uint8_t* dst);
+      void aligned_copy(size_t len, uint8_t *src, uint8_t *dst);
+
+      bool recv_message(
+			InputPacket<RPMsgEndPoint>& input_packet,
+			int timeout,
+			TransportRc& transport_rc) final;
+
+      bool send_message(
+			OutputPacket<RPMsgEndPoint> output_packet,
+			TransportRc& transport_rc) final;
 
       ssize_t write_data(
 			 uint8_t* buf,
@@ -150,19 +157,13 @@ namespace eprosima {
 			int timeout,
 			TransportRc& transport_rc);
 
-      bool recv_message(
-			InputPacket<RPMsgEndPoint>& input_packet,
-			int timeout,
-			TransportRc& transport_rc) final;
-
-      bool send_message(
-			OutputPacket<RPMsgEndPoint> output_packet,
-			TransportRc& transport_rc) final;
-
     protected:
       const uint8_t addr_;
       struct pollfd poll_fd_;
       uint8_t buffer_[SERVER_BUFFER_SIZE];
+      FramingIO framing_io_;
+      int opt;
+      int charfd;
 
       /* udmabuf specific variables*/
       struct pollfd udmabuf0_fd, udmabuf0_fd_addr;

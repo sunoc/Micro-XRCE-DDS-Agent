@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <openamp/rpmsg.h>
 #include <uxr/agent/transport/rpmsg/TermiosAgentLinux.hpp>
 
 namespace eprosima {
