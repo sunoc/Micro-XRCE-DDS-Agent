@@ -168,8 +168,8 @@ namespace eprosima {
       rpmsg_rcv_msg_q.pop_front();
       metal_irq_restore_enable(metal_irq_flag);
 
-      printf("in_data.len: %ld\r\n", in_data.len);
-      printf("r s len: %ld\r\n", len);
+      // printf("in_data.len: %ld\r\n", in_data.len);
+      // printf("r s len: %ld\r\n", len);
       /* Get the real data length from the rpmsg pl. */
       /************************************************************************/
       if ( in_data.len == UDMA_ADDR_LEN ) /* Large payload */
