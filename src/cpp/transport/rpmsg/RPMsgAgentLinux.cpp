@@ -66,15 +66,14 @@ namespace eprosima {
 		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
 		      (((uintptr_t)src) % sizeof(uint32_t))))
 	{
-	  *dst = *(const uint8_t *)src;
+	  *dst = *src;
 	  dst++;
 	  src++;
 	  len--;
 	}
 
       /* Copy data by 32bits. */
-      for (; (uint32_t)len >= (uint32_t)sizeof(uint32_t);
-	   dst += sizeof(uint32_t),
+      for (; (uint32_t)len >= (uint32_t)sizeof(uint32_t); dst += sizeof(uint32_t),
 	     src += sizeof(uint32_t),
 	     len -= sizeof(uint32_t))
 	{
@@ -84,7 +83,7 @@ namespace eprosima {
       /* Leftover data copied again bytes by byte. */
       for (; len != 0; dst++, src++, len--)
 	{
-	  *dst = *(const uint8_t *)src;
+	  *dst = *src;
 	}
     }
 
@@ -103,9 +102,10 @@ namespace eprosima {
       gpio[1].data = gpio[1].data | 0x2;
 #endif
       size_t rv = 0;
-      ssize_t bytes_written = 0;
+      ssize_t bytes_written;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
+      printf("w len: %ld\r\n", len);
       if ( CUTOFF_SIZE >= len  ) /* Small payload */
 	{
 	  bytes_written = rpmsg_trysend(&lept, buf, len);
@@ -119,8 +119,8 @@ namespace eprosima {
 	}
       else /* Large payload */
 	{
-
-	  /* Put the data in the udmabuf, alligned by 32bits. */
+	  printf("LP\r\n");
+          /* Put the data in the udmabuf, alligned by 32bits. */
 	  aligned_copy(len, buf, udmabuf0);
 
 	  /* Put the length and physical addr in the rpmsg buf.
@@ -136,7 +136,7 @@ namespace eprosima {
 	    rv = len;
 	  else
 	    {
-	      printf("bytes_written: %d\r\n", bytes_written);
+	      printf("bytes_written: %ld\r\n", bytes_written);
 	      UXR_ERROR("sending data failed with errno", strerror(errno));
 	      transport_rc = TransportRc::server_error;
 	    }
@@ -181,6 +181,8 @@ namespace eprosima {
       rpmsg_rcv_msg_q.pop_front();
       metal_irq_restore_enable(metal_irq_flag);
 
+      printf("in_data.len: %ld\r\n", in_data.len);
+      printf("r s len: %ld\r\n", len);
       /* Get the real data length from the rpmsg pl. */
       /************************************************************************/
       if ( in_data.len == UDMA_ADDR_LEN ) /* Large payload */
@@ -201,15 +203,15 @@ namespace eprosima {
 	  /* turns off PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data & ~(0x2);
 #endif
-	}
+      }
       /************************************************************************/
-      else if ( CUTOFF_SIZE  >= in_data.len ) /* Small payload */
+      else /* Small payload */
 	{
 	  if ( in_data.len == len )
 	    {
 #ifdef GPIO_MONITORING
-	      /* turns on PIN 1 on GPIO channel 2 (green)*/
-	      gpio[2].data = gpio[2].data | 0x2;
+	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data | 0x1;
 #endif
 	      aligned_copy(len, in_data.data, buf);
 
@@ -218,8 +220,8 @@ namespace eprosima {
 
 	      bytes_read =  len;
 #ifdef GPIO_MONITORING
-	      /* turns off PIN 1 on GPIO channel 2 (green)*/
-	      gpio[2].data = gpio[2].data & ~(0x2);
+	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data & ~(0x1);
 #endif
 	    }
 	  else if ( in_data.len > len )
@@ -250,8 +252,8 @@ namespace eprosima {
 	  else  //if ( in_data.len < len)
 	    {
 #ifdef GPIO_MONITORING
-	      /* turns on PIN 1 on GPIO channel 3 (purple)*/
-	      gpio[3].data = gpio[3].data | 0x2;
+	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data | 0x1;
 #endif
 	      aligned_copy(in_data.len, in_data.data, buf);
 
@@ -261,18 +263,10 @@ namespace eprosima {
 	      bytes_read =  in_data.len;
 
 #ifdef GPIO_MONITORING
-	      /* turns off PIN 0 on GPIO channel 3 (purple)*/
-	      gpio[3].data = gpio[3].data & ~(0x2);
+	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data & ~(0x1);
 #endif
-
 	    }
-	}
-      else
-	{
-	  UXR_ERROR("Wrong package size received.",
-		    strerror(errno));
-	  transport_rc = TransportRc::server_error;
-	  return 0;
 	}
 
       return bytes_read;

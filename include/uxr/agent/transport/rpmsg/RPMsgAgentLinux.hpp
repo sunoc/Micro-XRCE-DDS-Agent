@@ -16,8 +16,6 @@ extern "C" {
 #include <deque>
 #include <pthread.h>
 
-#include <termios.h>
-
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
@@ -25,7 +23,6 @@ extern "C" {
 
 #include <poll.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <signal.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -37,7 +34,6 @@ extern "C" {
 #include <limits.h>
 #include <sys/ioctl.h>
 #include <time.h>
-#include <fcntl.h>
 #include <string.h>
 #include <sstream>
 #include <linux/rpmsg.h>
