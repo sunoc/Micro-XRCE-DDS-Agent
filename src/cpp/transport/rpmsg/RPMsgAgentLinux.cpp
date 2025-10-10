@@ -218,7 +218,6 @@ namespace eprosima {
 	      /* All data has been used, can release it. */
 	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
-	      bytes_read =  len;
 #ifdef GPIO_MONITORING
 	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
 	      gpio[3].data = gpio[3].data & ~(0x1);
@@ -242,8 +241,6 @@ namespace eprosima {
 	      rpmsg_rcv_msg_q.push_front(in_data);
 	      metal_irq_restore_enable(metal_irq_flag);
 
-	      bytes_read =  len;
-
 #ifdef GPIO_MONITORING
 	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
 	      gpio[3].data = gpio[3].data & ~(0x1);
@@ -260,15 +257,19 @@ namespace eprosima {
 	      /* All data has been used, can release it. */
 	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
-	      bytes_read =  in_data.len;
-
 #ifdef GPIO_MONITORING
 	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
 	      gpio[3].data = gpio[3].data & ~(0x1);
 #endif
+	      /* Return for small payload , not enough data */
+	      return in_data.len;
 	    }
+
+	  /* Return for small payload , enough data */
+	  return len;
 	}
 
+      /* Return for large payload */
       return bytes_read;
     }
 
