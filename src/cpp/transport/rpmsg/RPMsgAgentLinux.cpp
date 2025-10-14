@@ -106,10 +106,16 @@ namespace eprosima {
       ssize_t bytes_written;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
-      // printf("w len: 0x%lx\r\n", len);
+      //printf("w len: %ld\r\n", len);
       if ( CUTOFF_SIZE >= len  ) /* Small payload */
 	{
 	  bytes_written = rpmsg_trysend(&lept, buf, len);
+
+	  /* Special case for 8bytes payloads */
+	  if ( UDMA_ADDR_LEN == bytes_written  )
+	    for (int i = 0; i<4; i++)
+	      udmabuf_payload[i + 4] = 0;
+
 	  if ( 0 < bytes_written )
 	    rv = len;
 	  else
@@ -120,7 +126,6 @@ namespace eprosima {
 	}
       else /* Large payload */
 	{
-	  printf("LP\r\n");
           /* Put the data in the udmabuf, alligned by 32bits. */
 	  aligned_copy(len, buf, udmabuf0);
 
@@ -131,6 +136,7 @@ namespace eprosima {
 	  for (int i = 0; i<4; i++)
 	    udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
 
+	  printf("LP, len = %ld\r\n", len);
 	  bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
 
 	  if ( UDMA_ADDR_LEN == bytes_written )
@@ -183,8 +189,7 @@ namespace eprosima {
       rpmsg_rcv_msg_q.pop_front();
       metal_irq_restore_enable(metal_irq_flag);
 
-      // printf("in_data.len: %ld\r\n", in_data.len);
-      printf("r s len: %ld\r\n", in_data.len);
+      //printf("r len: %ld\r\n", in_data.len);
       /* Get the real data length from the rpmsg pl. */
       /************************************************************************/
       if ( in_data.len == UDMA_ADDR_LEN ) /* Large payload */
@@ -206,7 +211,7 @@ namespace eprosima {
 	  gpio[3].data = gpio[3].data & ~(0x2);
 #endif
 	  return bytes_read;
-      }
+	}
       /************************************************************************/
       else /* Small payload */
 	{
@@ -214,8 +219,9 @@ namespace eprosima {
 	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
 	  gpio[3].data = gpio[3].data | 0x1;
 #endif
-
 	  aligned_copy(in_data.len, in_data.data, buf);
+
+	  /* All data has been used, can release it. */
 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
 #ifdef GPIO_MONITORING
@@ -224,71 +230,6 @@ namespace eprosima {
 #endif
 	  return in_data.len;
 	}
-
-// 	  if ( in_data.len == len )
-// 	    {
-// #ifdef GPIO_MONITORING
-// 	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
-// 	      gpio[3].data = gpio[3].data | 0x1;
-// #endif
-// 	      aligned_copy(len, in_data.data, buf);
-
-// 	      /* All data has been used, can release it. */
-// 	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
-
-// #ifdef GPIO_MONITORING
-// 	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
-// 	      gpio[3].data = gpio[3].data & ~(0x1);
-// #endif
-// 	    }
-// 	  else if ( in_data.len > len )
-// 	    {
-// #ifdef GPIO_MONITORING
-// 	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
-// 	      gpio[3].data = gpio[3].data | 0x1;
-// #endif
-// 	      aligned_copy(len, in_data.data, buf);
-
-// 	      /* Trunkate the first element of the queue. */
-// 	      in_data.len   -=  len;
-// 	      in_data.data  +=  len;
-
-// 	      /* Disabling remoteproc interrupts when
-// 		 accessing the queue. */
-// 	      metal_irq_flag = metal_irq_save_disable();
-// 	      rpmsg_rcv_msg_q.push_front(in_data);
-// 	      metal_irq_restore_enable(metal_irq_flag);
-
-// #ifdef GPIO_MONITORING
-// 	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
-// 	      gpio[3].data = gpio[3].data & ~(0x1);
-// #endif
-// 	    }
-// 	  else  //if ( in_data.len < len)
-// 	    {
-// #ifdef GPIO_MONITORING
-// 	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
-// 	      gpio[3].data = gpio[3].data | 0x1;
-// #endif
-// 	      aligned_copy(in_data.len, in_data.data, buf);
-
-// 	      /* All data has been used, can release it. */
-// 	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
-
-// #ifdef GPIO_MONITORING
-// 	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
-// 	      gpio[3].data = gpio[3].data & ~(0x1);
-// #endif
-// 	      /* Return for small payload , not enough data */
-// 	      return in_data.len;
-// 	    }
-
-// 	  /* Return for small payload , enough data */
-// 	  return len;
-// 	}
-
-//       /* Return for large payload */
-//       return bytes_read;
     }
 
     /**************************************************************************
