@@ -3,7 +3,7 @@
 
 #include <uxr/agent/transport/Server.hpp>
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
-#include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
+//#include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
 
 /*
  * These C header must stay this way to keep compatibility
@@ -127,10 +127,6 @@ namespace eprosima {
       const uint8_t addr_;
       struct pollfd poll_fd_;
       uint8_t buffer_[SERVER_BUFFER_SIZE];
-      FramingIO framing_io_;
-      int opt;
-      int charfd;
-
     };
 
   } // namespace uxr

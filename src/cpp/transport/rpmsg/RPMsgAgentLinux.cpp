@@ -15,19 +15,6 @@ namespace eprosima {
       , addr_{addr}
       , poll_fd_{}
       , buffer_{0}
-      , framing_io_(
-		    addr,
-		    std::bind(&RPMsgAgent::write_data, this,
-			      std::placeholders::_1,
-			      std::placeholders::_2,
-			      std::placeholders::_3),
-		    std::bind(&RPMsgAgent::read_data, this,
-			      std::placeholders::_1,
-			      std::placeholders::_2,
-			      std::placeholders::_3,
-			      std::placeholders::_4))
-      , opt{}
-      , charfd{}
     {}
 
     /**************************************************************************
@@ -218,12 +205,10 @@ namespace eprosima {
 
       do
 	{
-	  bytes_read = framing_io_.read_framed_msg(
-						   buffer_,
-						   SERVER_BUFFER_SIZE,
-						   remote_addr,
-						   timeout,
-						   transport_rc);
+	  bytes_read = read_data( buffer_,
+				  SERVER_BUFFER_SIZE,
+				  timeout,
+				  transport_rc);
 	}
       while ( (0 == bytes_read) && (0 < timeout) );
 
@@ -261,11 +246,10 @@ namespace eprosima {
     {
       bool ret = false;
       ssize_t bytes_written =
-	framing_io_.write_framed_msg(
-				     output_packet.message->get_buf(),
-				     output_packet.message->get_len(),
-				     output_packet.destination.get_addr(),
-				     transport_rc);
+	write_data( output_packet.message->get_buf(),
+		    output_packet.message->get_len(),
+		    transport_rc);
+
       if ( (0 < bytes_written) &&
 	   (static_cast<size_t>(bytes_written) == output_packet.message->get_len()) )
 	{
