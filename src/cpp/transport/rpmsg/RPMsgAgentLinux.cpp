@@ -75,13 +75,10 @@ namespace eprosima {
       /* turns on PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data | 0x2;
 #endif
-      size_t ret = 0;
       ssize_t bytes_written;
 
       bytes_written = rpmsg_trysend(&lept, buf, len);
-      if ( 0 < bytes_written )
-	ret = size_t(bytes_written);
-      else
+      if ( 0 > bytes_written )
 	{
 	  UXR_ERROR("sending data failed with errno", strerror(errno));
           transport_rc = TransportRc::server_error;
@@ -91,7 +88,7 @@ namespace eprosima {
       /* turns off PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data & ~(0x2);
 #endif
-      return ret;
+      return bytes_written;
     }
 
     /**************************************************************************
@@ -250,8 +247,7 @@ namespace eprosima {
 		    output_packet.message->get_len(),
 		    transport_rc);
 
-      if ( (0 < bytes_written) &&
-	   (static_cast<size_t>(bytes_written) == output_packet.message->get_len()) )
+      if ( (0 < bytes_written) )
 	{
 	  ret = true;
 
