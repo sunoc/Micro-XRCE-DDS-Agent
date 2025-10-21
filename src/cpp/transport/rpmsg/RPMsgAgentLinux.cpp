@@ -9,32 +9,6 @@
 namespace eprosima {
   namespace uxr {
 
-    namespace {
-      const std::string transport_rc_to_str( const TransportRc& transport_rc)
-      {
-	switch (transport_rc)
-	  {
-	  case TransportRc::connection_error:
-	    {
-	      return std::string("connection error");
-	    }
-	  case TransportRc::timeout_error:
-	    {
-	      return std::string("timeout error");
-	    }
-	  case TransportRc::server_error:
-	    {
-	      return std::string("server error");
-	    }
-	  default:
-	    {
-	      return std::string();
-	    }
-	  }
-      }
-
-    } // anonymous namespace
-
     RPMsgAgent::RPMsgAgent(
 			   uint8_t addr,
 			   Middleware::Kind middleware_kind)
@@ -102,25 +76,18 @@ namespace eprosima {
       /* turns on PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data | 0x2;
 #endif
-      size_t rv = 0;
-      ssize_t bytes_written;
+      size_t bytes_written = 0;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
       //printf("w len: %ld\r\n", len);
       if ( CUTOFF_SIZE >= len  ) /* Small payload */
 	{
 	  bytes_written = rpmsg_trysend(&lept, buf, len);
-
-	  /* Special case for 8bytes payloads */
-	  if ( UDMA_ADDR_LEN == bytes_written  )
-	    for (int i = 0; i<4; i++)
-	      udmabuf_payload[i + 4] = 0;
-
-	  if ( 0 < bytes_written )
-	    rv = len;
-	  else
+	  if ( bytes_written != len )
 	    {
-	      UXR_ERROR("sending data failed with errno", strerror(errno));
+	      UXR_ERROR("sending data failed", strerror(errno));
+	      printf("%ld / %ld\r\n", bytes_written, len);
+
 	      transport_rc = TransportRc::server_error;
 	    }
 	}
@@ -140,7 +107,7 @@ namespace eprosima {
 	  bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
 
 	  if ( UDMA_ADDR_LEN == bytes_written )
-	    rv = len;
+	    bytes_written = len;
 	  else
 	    {
 	      printf("bytes_written: %ld\r\n", bytes_written);
@@ -152,7 +119,7 @@ namespace eprosima {
       /* turns off PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data & ~(0x2);
 #endif
-      return rv;
+      return bytes_written;
     }
 
     /*****************************************************************
@@ -172,6 +139,8 @@ namespace eprosima {
       ssize_t bytes_read = 0;
       (void)len; /* silence the unused warning */
 
+      /************************************************************************/
+      /* Common section, getting RPMsg notification. */
       if ( 0 >= timeout )
 	{
 	  UXR_ERROR("Read timeout: ", strerror(ETIME));
@@ -189,8 +158,6 @@ namespace eprosima {
       rpmsg_rcv_msg_q.pop_front();
       metal_irq_restore_enable(metal_irq_flag);
 
-      //printf("r len: %ld\r\n", in_data.len);
-      /* Get the real data length from the rpmsg pl. */
       /************************************************************************/
       if ( in_data.len == UDMA_ADDR_LEN ) /* Large payload */
 	{
@@ -215,20 +182,66 @@ namespace eprosima {
       /************************************************************************/
       else /* Small payload */
 	{
+	  if ( in_data.len == len )
+	    {
 #ifdef GPIO_MONITORING
-	  /* turns on PIN 0 on GPIO channel 3 (blue)*/
-	  gpio[3].data = gpio[3].data | 0x1;
+	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data | 0x1;
 #endif
-	  aligned_copy(in_data.len, in_data.data, buf);
+	      aligned_copy(len, in_data.data, buf);
 
-	  /* All data has been used, can release it. */
-	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+	      /* All data has been used, can release it. */
+	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
 #ifdef GPIO_MONITORING
-	  /* turns off PIN 0 on GPIO channel 3 (blue)*/
-	  gpio[3].data = gpio[3].data & ~(0x1);
+	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data & ~(0x1);
 #endif
-	  return in_data.len;
+	    }
+	  else if ( in_data.len > len )
+	    {
+#ifdef GPIO_MONITORING
+	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data | 0x1;
+#endif
+	      aligned_copy(len, in_data.data, buf);
+
+	      /* Trunkate the first element of the queue. */
+	      in_data.len   -=  len;
+	      in_data.data  +=  len;
+
+	      /* Disabling remoteproc interrupts when
+		 accessing the queue. */
+	      metal_irq_flag = metal_irq_save_disable();
+	      rpmsg_rcv_msg_q.push_front(in_data);
+	      metal_irq_restore_enable(metal_irq_flag);
+
+#ifdef GPIO_MONITORING
+	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
+	    }
+	  else  //if ( in_data.len < len)
+	    {
+#ifdef GPIO_MONITORING
+	      /* turns on PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data | 0x1;
+#endif
+	      aligned_copy(in_data.len, in_data.data, buf);
+
+	      /* All data has been used, can release it. */
+	      rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
+
+#ifdef GPIO_MONITORING
+	      /* turns off PIN 0 on GPIO channel 3 (blue)*/
+	      gpio[3].data = gpio[3].data & ~(0x1);
+#endif
+
+	      /* Return the length we have. */
+	      return in_data.len;
+	    }
+
+	  return len;
 	}
     }
 
@@ -243,25 +256,26 @@ namespace eprosima {
 			     int timeout,
 			     TransportRc& transport_rc)
     {
-      bool rv = false;
+      bool ret = false;
       uint8_t remote_addr = 0x00;
       ssize_t bytes_read = 0;
 
       do
 	{
-	  bytes_read = read_data(buffer_,
-				 SERVER_BUFFER_SIZE,
-				 timeout,
-				 transport_rc);
+	  bytes_read = read_data( buffer_,
+				  SERVER_BUFFER_SIZE,
+				  timeout,
+				  transport_rc);
 	}
-      while ((0 == bytes_read) && (0 < timeout));
+      while ( (0 == bytes_read) && (0 < timeout) );
 
       if ( 0 < bytes_read && TransportRc::ok == transport_rc )
 	{
 	  input_packet.message.reset(new InputMessage(buffer_,
 						      static_cast<size_t>(bytes_read)));
 	  input_packet.source = RPMsgEndPoint(remote_addr);
-	  rv = true;
+	  ret = true;
+
 
 	  uint32_t raw_client_key;
 	  if ( Server<RPMsgEndPoint>::get_client_key(input_packet.source,
@@ -274,17 +288,7 @@ namespace eprosima {
 				    input_packet.message->get_len());
 	    }
 	}
-      else
-	{
-	  std::stringstream ss;
-	  ss << UXR_COLOR_RED << "Error while receiving message: "
-	     << transport_rc_to_str(transport_rc) << UXR_COLOR_RESET;
-	  UXR_AGENT_LOG_ERROR(
-			      ss.str(),
-			      "{} agent error",
-			      "RPMsg");
-	}
-      return rv;
+      return ret;
     }
 
     /**************************************************************************
@@ -297,17 +301,15 @@ namespace eprosima {
 			     OutputPacket<RPMsgEndPoint> output_packet,
 			     TransportRc& transport_rc)
     {
-      bool rv = false;
-      ssize_t bytes_written = write_data(
-					 output_packet.message->get_buf(),
-					 output_packet.message->get_len(),
-					 transport_rc);
+      bool ret = false;
+      ssize_t bytes_written =
+	write_data( output_packet.message->get_buf(),
+		    output_packet.message->get_len(),
+		    transport_rc);
 
-      if ((0 < bytes_written)
-	  && (static_cast<size_t>(bytes_written)
-	      == output_packet.message->get_len()) )
+      if ( output_packet.message->get_len() == static_cast<size_t>(bytes_written) )
 	{
-	  rv = true;
+	  ret = true;
 
 	  uint32_t raw_client_key;
 	  if (Server<RPMsgEndPoint>::get_client_key(output_packet.destination,
@@ -320,24 +322,7 @@ namespace eprosima {
 				    output_packet.message->get_len());
 	    }
 	}
-      else
-	{
-	  std::stringstream ss;
-	  ss << UXR_COLOR_RED
-	     << "Error while sending message: "
-	     << transport_rc_to_str(transport_rc)
-	     << ". Expected to send "
-	     << output_packet.message->get_len()
-	     << " bytes, but sent "
-	     << bytes_written
-	     << "instead"
-	     << UXR_COLOR_RESET;
-	  UXR_AGENT_LOG_ERROR(
-			      ss.str(),
-			      "{} agent error",
-			      "RPmsg");
-	}
-      return rv;
+      return ret;
     }
 
   } // namespace uxr
