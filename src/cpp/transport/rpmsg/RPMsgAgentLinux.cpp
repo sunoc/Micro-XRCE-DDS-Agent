@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <pthread.h>
 #include <cstdint>
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
 #include <uxr/agent/utils/Conversion.hpp>
@@ -8,6 +9,32 @@
 
 namespace eprosima {
   namespace uxr {
+
+    namespace {
+      const std::string transport_rc_to_str( const TransportRc& transport_rc)
+      {
+	switch (transport_rc)
+	  {
+	  case TransportRc::connection_error:
+	    {
+	      return std::string("connection error");
+	    }
+	  case TransportRc::timeout_error:
+	    {
+	      return std::string("timeout error");
+	    }
+	  case TransportRc::server_error:
+	    {
+	      return std::string("server error");
+	    }
+	  default:
+	    {
+	      return std::string();
+	    }
+	  }
+      }
+
+    } // anonymous namespace
 
     RPMsgAgent::RPMsgAgent(
 			   uint8_t addr,
@@ -40,7 +67,7 @@ namespace eprosima {
 		      (((uintptr_t)dst) % sizeof(uint32_t)) ||
 		      (((uintptr_t)src) % sizeof(uint32_t))))
 	{
-	  *dst = *src;
+	  *dst = *(const uint8_t *)src;
 	  dst++;
 	  src++;
 	  len--;
@@ -57,7 +84,7 @@ namespace eprosima {
       /* Leftover data copied again bytes by byte. */
       for (; len != 0; dst++, src++, len--)
 	{
-	  *dst = *src;
+	  *dst = *(const uint8_t *)src;
 	}
     }
 
@@ -76,19 +103,24 @@ namespace eprosima {
       /* turns on PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data | 0x2;
 #endif
-      size_t bytes_written = 0;
+      size_t rv = 0;
+      ssize_t bytes_written = 0;
       uint8_t udmabuf_payload[UDMA_ADDR_LEN];
 
       //printf("w len: %ld\r\n", len);
       if ( CUTOFF_SIZE >= len  ) /* Small payload */
 	{
 	  bytes_written = rpmsg_trysend(&lept, buf, len);
-	  if ( bytes_written != len )
+	  if ( (size_t)bytes_written != len )
 	    {
 	      UXR_ERROR("sending data failed", strerror(errno));
 	      printf("%ld / %ld\r\n", bytes_written, len);
 
 	      transport_rc = TransportRc::server_error;
+	    }
+	  else /* Correct payload sent. */
+	    {
+	      rv = bytes_written;
 	    }
 	}
       else /* Large payload */
@@ -103,11 +135,11 @@ namespace eprosima {
 	  for (int i = 0; i<4; i++)
 	    udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
 
-	  printf("LP, len = %ld\r\n", len);
+	  printf("LP send: %ld\r\n", len);
 	  bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
 
 	  if ( UDMA_ADDR_LEN == bytes_written )
-	    bytes_written = len;
+	    rv = len;
 	  else
 	    {
 	      printf("bytes_written: %ld\r\n", bytes_written);
@@ -119,7 +151,7 @@ namespace eprosima {
       /* turns off PIN 1 on GPIO channel 1 (brown)*/
       gpio[1].data = gpio[1].data & ~(0x2);
 #endif
-      return bytes_written;
+      return rv;
     }
 
     /*****************************************************************
@@ -177,6 +209,7 @@ namespace eprosima {
 	  /* turns off PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data & ~(0x2);
 #endif
+	  printf("LP read: %ld\r\n", bytes_read);
 	  return bytes_read;
 	}
       /************************************************************************/
@@ -267,7 +300,7 @@ namespace eprosima {
 				  timeout,
 				  transport_rc);
 	}
-      while ( (0 == bytes_read) && (0 < timeout) );
+      while ((0 == bytes_read) && (0 < timeout));
 
       if ( 0 < bytes_read && TransportRc::ok == transport_rc )
 	{
@@ -288,6 +321,16 @@ namespace eprosima {
 				    input_packet.message->get_len());
 	    }
 	}
+      else
+	{
+	  std::stringstream ss;
+	  ss << UXR_COLOR_RED << "Error while receiving message: "
+	     << transport_rc_to_str(transport_rc) << UXR_COLOR_RESET;
+	  UXR_AGENT_LOG_ERROR(
+			      ss.str(),
+			      "{} agent error",
+			      "RPMsg");
+	}
       return ret;
     }
 
@@ -307,7 +350,9 @@ namespace eprosima {
 		    output_packet.message->get_len(),
 		    transport_rc);
 
-      if ( output_packet.message->get_len() == static_cast<size_t>(bytes_written) )
+      if ((0 < bytes_written)
+	  && (static_cast<size_t>(bytes_written)
+	      == output_packet.message->get_len()) )
 	{
 	  ret = true;
 
@@ -321,6 +366,23 @@ namespace eprosima {
 				    output_packet.message->get_buf(),
 				    output_packet.message->get_len());
 	    }
+	}
+      else
+	{
+	  std::stringstream ss;
+	  ss << UXR_COLOR_RED
+	     << "Error while sending message: "
+	     << transport_rc_to_str(transport_rc)
+	     << ". Expected to send "
+	     << output_packet.message->get_len()
+	     << " bytes, but sent "
+	     << bytes_written
+	     << "instead"
+	     << UXR_COLOR_RESET;
+	  UXR_AGENT_LOG_ERROR(
+			      ss.str(),
+			      "{} agent error",
+			      "RPmsg");
 	}
       return ret;
     }

@@ -65,9 +65,9 @@ namespace eprosima {
       struct rpmsg_rcv_msg pl;
 
       rpmsg_hold_rx_buffer(ept, data);
-      pl.data = (uint8_t *)data;
-      pl.len = len;
       pl.ept  = ept;
+      pl.data = (uint8_t *)data;
+      pl.len  = len;
       pl.full_payload = data;
 
       rpmsg_rcv_msg_q.push_back(pl);

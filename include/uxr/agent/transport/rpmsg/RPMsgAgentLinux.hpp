@@ -3,7 +3,6 @@
 
 #include <uxr/agent/transport/Server.hpp>
 #include <uxr/agent/transport/endpoint/RPMsgEndPoint.hpp>
-//#include <uxr/agent/transport/stream_framing/StreamFramingProtocol.hpp>
 
 /*
  * These C header must stay this way to keep compatibility
@@ -16,6 +15,8 @@ extern "C" {
 #include <deque>
 #include <pthread.h>
 
+#include <termios.h>
+
 #include <cstdint>
 #include <cstddef>
 #include <sys/poll.h>
@@ -23,6 +24,7 @@ extern "C" {
 
 #include <poll.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <signal.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -34,6 +36,7 @@ extern "C" {
 #include <limits.h>
 #include <sys/ioctl.h>
 #include <time.h>
+#include <fcntl.h>
 #include <string.h>
 #include <sstream>
 #include <linux/rpmsg.h>
@@ -72,7 +75,7 @@ extern "C" {
 
 /* Hybrid mode cutoff size in bytes */
 #define CUTOFF_SIZE 345
-
+#define RPMSG_BUS_SYS "/sys/bus/rpmsg"
 #define UDMA_ADDR_LEN           8
 
 #define SHUTDOWN_MSG 0xEF56A55A
@@ -135,7 +138,7 @@ namespace eprosima {
 
       virtual bool fini() = 0;
 
-      void aligned_copy(size_t len, uint8_t *src, uint8_t *dst);
+      void aligned_copy(size_t len, uint8_t* src, uint8_t* dst);
 
       bool recv_message(
 			InputPacket<RPMsgEndPoint>& input_packet,

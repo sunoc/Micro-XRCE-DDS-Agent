@@ -2,9 +2,6 @@
 #define UXR_AGENT_TRANSPORT_RPMSG_TERMIOSAGENTLINUX_HPP_
 
 #include <uxr/agent/transport/rpmsg/RPMsgAgentLinux.hpp>
-#include <termios.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 namespace eprosima {
   namespace uxr {
