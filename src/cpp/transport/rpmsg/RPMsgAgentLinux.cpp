@@ -135,7 +135,7 @@ namespace eprosima {
 	  for (int i = 0; i<4; i++)
 	    udmabuf_payload[i + 4] = (len >> i * 8) & 0x00FF;
 
-	  printf("LP send: %ld\r\n", len);
+	  UXR_WARNING("LP send", len);
 	  bytes_written = rpmsg_trysend(&lept, udmabuf_payload, UDMA_ADDR_LEN);
 
 	  if ( UDMA_ADDR_LEN == bytes_written )
@@ -167,7 +167,6 @@ namespace eprosima {
     {
       struct rpmsg_rcv_msg in_data;
       unsigned int metal_irq_flag;
-      size_t rcv_phys_addr = 0;
       ssize_t bytes_read = 0;
       (void)len; /* silence the unused warning */
 
@@ -197,19 +196,21 @@ namespace eprosima {
 	  /* turns on PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data | 0x2;
 #endif
-	  for ( int i = 0; i<4; i++ ) /* Read 4 bytes */
-	    rcv_phys_addr += ( in_data.data[i] << i*8 );
+
 	  for ( int i = 0; i<4; i++ ) /* Read 4 bytes */
 	    bytes_read += ( in_data.data[i+4] << i*8 );
 
+	  // printf("LP, %d\r\n", bytes_read);
+	  // for (int i = 0x20; i < 0x25; i++)
+	  //   printf("%x: %x -> %x\r\n", udmabuf1, udmabuf1[i], buf[i]);
 	  aligned_copy(bytes_read, udmabuf1, buf);
+
 	  rpmsg_release_rx_buffer(in_data.ept, in_data.full_payload);
 
 #ifdef GPIO_MONITORING
 	  /* turns off PIN 1 on GPIO channel 3 (purple)*/
 	  gpio[3].data = gpio[3].data & ~(0x2);
 #endif
-	  printf("LP read: %ld\r\n", bytes_read);
 	  return bytes_read;
 	}
       /************************************************************************/
